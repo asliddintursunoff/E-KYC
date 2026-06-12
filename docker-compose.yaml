@@ -1,0 +1,19 @@
+version: '5.3'
+services:
+  postgres_db:
+    image: pgvector/pgvector:pg17
+    container_name: postgres_pgvector
+    # restart: always
+    
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: postgres
+    ports:
+      - "5433:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
