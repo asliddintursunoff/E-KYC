@@ -13,7 +13,7 @@ services:
       - "5433:5432"
 
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data_v:/var/lib/postgresql/data
 
 volumes:
-  postgres_data:
+  postgres_data_v:
