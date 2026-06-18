@@ -14,7 +14,7 @@ SECRET_KEY = 'django-insecure-@6c_p-5t7tc)_v4r5my&rve6q5_hcv+zk5f^m1@+(q=@1ua%yq
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -140,3 +140,15 @@ SPECTACULAR_SETTINGS = {
 
 
 
+
+
+CELERY_BROKER_URL = "redis://localhost:6379/0"
+CELERY_RESULT_BACKEND = "redis://localhost:6379/1"
+
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = "UTC"
+
+
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True

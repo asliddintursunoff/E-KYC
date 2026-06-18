@@ -1,3 +1,8 @@
+from apps.users.authentication import TemporaryTokenAuthentication
+from rest_framework.exceptions import AuthenticationFailed
+from rest_framework_simplejwt.tokens import RefreshToken
+import base64
+from apps.users.tasks import face_register_task
 from rest_framework.generics import CreateAPIView,ListAPIView,GenericAPIView,RetrieveAPIView
 from rest_framework.views import APIView
 from rest_framework import status
@@ -10,7 +15,7 @@ import os
 
 from django.contrib.auth import authenticate
 from apps.users.models import User
-from apps.users.api.serializers import (UserRegsiterSerializer,
+from apps.users.api.serializers import (UserInformationSerializer, UserRegsiterSerializer,
                                         FaceVerificationSerializer,
                                         # UserSelfieSerializer,
                                         # SelfieVerificationResponseSerializer,
@@ -19,64 +24,71 @@ from apps.users.api.serializers import (UserRegsiterSerializer,
 from apps.users.services.face_verification import FaceVerificationService
 from apps.users.tokens import TemporaryLoginToken
 
+from rest_framework.decorators import api_view,authentication_classes,permission_classes
+#celery test\
+from celery.result import AsyncResult
 
+
+@api_view(['GET'])
+@authentication_classes([TemporaryTokenAuthentication])
+@permission_classes([IsAuthenticated])
+def get_job_info(request,job_id):
+    result = AsyncResult(job_id)
+    access_token = None
+    refresh_token = None
+    if result.status == 'SUCCESS':
+        refresh_token = RefreshToken().for_user(request.user)
+        access_token = str(refresh_token.access_token)
+        
+    return Response({
+        "job_id": job_id,
+        "status": result.status,
+        "error": str(result.result) if result.failed() else None,
+        "access_token":access_token,
+        "refresh_token":None if not refresh_token else str(refresh_token)
+    })
+
+
+
+
+
+
+
+
+
+
+
+
+
+from django.db.utils import IntegrityError
+from rest_framework.exceptions import ValidationError
 
 class UserCreateGenericAPIView(CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserRegsiterSerializer
 
+    def perform_create(self, serializer):
+        try:
+            self.instance = serializer.save()
+            self.serializer = serializer
+        except IntegrityError as e:
+            raise ValidationError(str(e))  
+
+    def create(self, request, *args, **kwargs):
+        super().create(request, *args, **kwargs)
+
+        user = self.instance
+        temporary_token = TemporaryLoginToken.for_user(user)
+
+        return Response({
+            **self.serializer.data,
+            "selfie_verification_token": str(temporary_token)
+        }, status=status.HTTP_201_CREATED)
    
     
+
     
 
-# class UserSelfieUploadAPIView(APIView):
-#     parser_classes = [MultiPartParser]
-#     serializer_class = UserSelfieSerializer
-
-#     def put(self,request,id,*args,**kwargs):
-#         user = User.objects.get(id=id)
-#         serializer = UserSelfieSerializer(user,data = request.data)
-#         if not serializer.is_valid():
-#             return Response(serializer.errors)
-
-#         print(serializer.validated_data)
-#         data = serializer.validated_data
-#         try:
-#             image_bytes = np.frombuffer(
-#                 data['image'].read(),
-#                 dtype=np.uint8
-#             )
-        
-#             model = FaceDetector()
-#             model.register_selfie(image_bytes,id)
-
-#         except Exception as e:
-#             return Response({"detail":str(e)},status=status.HTTP_422_UNPROCESSABLE_ENTITY)
-        
-
-#         if user.image is not None:
-#             if os.path.isfile(user.image.path):
-#                 os.remove(user.image.path)
-
-#         user.image = data['image']
-#         user.verified = True
-#         user.save()
-#         # print(response)
-        
-#         return Response(serializer.data,status=status.HTTP_200_OK)
-    
-
-
-
-
-
-
-
-        
-
-from apps.users.authentication import TemporaryTokenAuthentication
-from rest_framework.exceptions import AuthenticationFailed
-from rest_framework_simplejwt.tokens import RefreshToken
 class VerificationAPIView(GenericAPIView):
     serializer_class = FaceVerificationSerializer
     authentication_classes = [TemporaryTokenAuthentication]
@@ -87,6 +99,15 @@ class VerificationAPIView(GenericAPIView):
         serializer.is_valid(raise_exception = True)
        
         try:
+            if not request.user.verified or request.user.image is None:
+                image = serializer.validated_data['image']
+                image_b64 = base64.b64encode(image.read()).decode("utf-8")
+
+                task = face_register_task.delay(image_b64, request.user.id)
+                return Response({
+                    "job_id":task.id
+                },status=status.HTTP_200_OK)
+            
             FaceVerificationService.verify_user_selfie(serializer.validated_data['image'],request.user)
         
         except AuthenticationFailed as e:
@@ -105,7 +126,7 @@ class VerificationAPIView(GenericAPIView):
 
 class GetMyInfoGenericView(RetrieveAPIView):
     permission_classes = [IsAuthenticated]
-    serializer_class = UserRegsiterSerializer
+    serializer_class = UserInformationSerializer
     def get_object(self):
         return self.request.user
     

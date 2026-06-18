@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>E-KYC Face Verification</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section class="auth-panel" aria-labelledby="app-title">
+        <div class="brand-row">
+          <div class="brand-mark" aria-hidden="true">ID</div>
+          <div>
+            <p class="eyebrow">Secure identity check</p>
+            <h1 id="app-title">E-KYC Verification</h1>
+          </div>
+        </div>
+
+        <ol class="steps" aria-label="Verification progress">
+          <li class="step is-active" data-step="login">Login</li>
+          <li class="step" data-step="face">Face ID</li>
+          <li class="step" data-step="profile">My info</li>
+        </ol>
+
+        <form id="login-form" class="card form-view">
+          <label>
+            <span>Passport ID</span>
+            <input
+              id="passport-id"
+              name="passport_id"
+              autocomplete="username"
+              placeholder="AA1234567"
+              required
+            />
+          </label>
+          <label>
+            <span>Password</span>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              placeholder="Your password"
+              required
+            />
+          </label>
+          <button id="login-button" type="submit">Continue</button>
+        </form>
+
+        <section id="verify-view" class="card verify-view is-hidden" aria-live="polite">
+          <div class="camera-frame">
+            <video id="camera" autoplay muted playsinline></video>
+            <canvas id="snapshot" class="is-hidden"></canvas>
+            <div id="camera-placeholder" class="camera-placeholder">Camera is closed</div>
+          </div>
+          <div class="capture-actions">
+            <button id="open-camera-button" type="button">Open camera</button>
+            <button id="capture-button" type="button" disabled>Take photo and verify</button>
+          </div>
+        </section>
+
+        <section id="profile-view" class="card profile-view is-hidden" aria-live="polite">
+          <div class="success-badge">Verified</div>
+          <dl id="profile-details" class="profile-details"></dl>
+          <button id="restart-button" type="button">Start again</button>
+        </section>
+
+        <div id="message" class="message" role="status" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <script type="module" src="/src/app.js"></script>
+  </body>
+</html>

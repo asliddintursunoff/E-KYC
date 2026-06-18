@@ -9,10 +9,23 @@ class UserRegsiterSerializer(serializers.Serializer):
     last_name = serializers.CharField()
     middle_name = serializers.CharField()
     passport_id = serializers.CharField()
-    password = serializers.CharField()
-    date_of_birth = serializers.DateField(format="%d-%m-%YYYY")
+    password = serializers.CharField(write_only = True)
+    date_of_birth = serializers.DateField(format="%d-%m-%Y")
 
+    def validate_passport_id(self,value):
+        pattern_exact = r"^[A-Z]{2}\d{7}$"
+        if len(value)!=9 or not re.match(pattern_exact, value.upper()):
+            raise serializers.ValidationError('Passport Id should be exactly 2 chars and 7 digits')
+        return value
+    
+    def validate_password(self,value):
+        try:
+            validate_password(value)
+        except ValidationError as e:
+            raise serializers.ValidationError(str(e))
+        return value
 
+   
     def create(self, validated_data):
         password = validated_data.pop('password')
         user = User(**validated_data)
@@ -20,7 +33,12 @@ class UserRegsiterSerializer(serializers.Serializer):
         user.set_password(password)
         user.save()
         return user
-        
+    
+
+class UserInformationSerializer(UserRegsiterSerializer):
+    image = serializers.ImageField(read_only = True)
+    verified = serializers.BooleanField(read_only = True)
+
 
      
 
@@ -77,6 +95,8 @@ class UserLoginSerializer(serializers.Serializer):
         }
         return attrs
         
+
+
 
 
 

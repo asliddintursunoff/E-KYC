@@ -25,14 +25,12 @@ class FaceVerificationService:
         model = FaceVerificationService.get_model()
         try:
             
-            embedding = model.verify_user(image)
+            embedding = model.identify_user(image)
        
             person = User.objects.filter(id=user.id).annotate(
                         distance=CosineDistance('embedding', embedding)
                         ).order_by('distance').first()
 
-
-            print(person.distance)
             if (person.distance<0 or person.distance>0.3):
                 raise AuthenticationFailed('Person from photo can not be identified')
 
@@ -40,6 +38,19 @@ class FaceVerificationService:
         except AuthenticationFailed as e:
             raise AuthenticationFailed(str(e))
            
+        except Exception as e:
+            raise FaceVerificationException(str(e))
+        
+
+    @staticmethod
+    def register_user_selfie(image,user_id):
+        model = FaceVerificationService.get_model()
+        try:
+            embedding = model.identify_user(image)
+            
+            User.objects.filter(id = user_id).update(embedding = embedding,verified = True)
+
+         
         except Exception as e:
             raise FaceVerificationException(str(e))
         

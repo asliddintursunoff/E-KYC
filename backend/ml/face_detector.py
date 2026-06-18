@@ -66,11 +66,13 @@ class FaceDetector:
 
         
     
-    def verify_user(self,photo)->bool:
+    def identify_user(self,photo)->bool:
+        
         image_bytes = np.frombuffer(
-                    photo.read(),
-                    dtype=np.uint8
-                )
+            photo.read() if hasattr(photo, "read") else photo,
+            dtype=np.uint8
+        )
+        
         img = cv2.imdecode(image_bytes,cv2.IMREAD_COLOR)
         face_info = self._face_info(img)
 
