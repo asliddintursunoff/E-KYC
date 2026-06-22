@@ -5,16 +5,16 @@ from apps.users.api.views import (UserCreateGenericAPIView,
                                   VerificationAPIView,
                                   LoginAPIView,
                                   GetMyInfoGenericView,
+                                  SelfieUploadVerificationAPIView
                                   )
 
 
 urlpatterns = [
     path('register/',UserCreateGenericAPIView.as_view(),name='register'),
-    # path('selfie/<id>',UserSelfieUploadAPIView.as_view()),
-    path('verify/',VerificationAPIView.as_view()),
     path('login/',LoginAPIView.as_view()),
+    path('register/selfie/',SelfieUploadVerificationAPIView.as_view()),
+    path('verify/selfie/',VerificationAPIView.as_view()),
     path('me/',GetMyInfoGenericView.as_view()),
-
     path('job/<job_id>/',get_job_info)
 
 

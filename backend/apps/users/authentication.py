@@ -7,7 +7,8 @@ class TemporaryTokenAuthentication(JWTAuthentication):
         try:
             return TemporaryLoginToken(raw_token)
         except Exception as e:
-            raise InvalidToken(str(e))
+            # raise InvalidToken(str(e))
+            return None
         
     
 

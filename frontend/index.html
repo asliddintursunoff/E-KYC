@@ -3,67 +3,178 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>E-KYC Face Verification</title>
+    <title>E-KYC Identity Verification</title>
     <link rel="stylesheet" href="/src/styles.css" />
   </head>
   <body>
-    <main class="app">
-      <section class="auth-panel" aria-labelledby="app-title">
-        <div class="brand-row">
-          <div class="brand-mark" aria-hidden="true">ID</div>
-          <div>
-            <p class="eyebrow">Secure identity check</p>
-            <h1 id="app-title">E-KYC Verification</h1>
-          </div>
+    <main class="shell">
+      <aside class="summary-panel">
+        <div class="brand-lock" aria-hidden="true">
+          <span></span>
+        </div>
+        <div>
+          <p class="eyebrow">Face ID onboarding</p>
+          <h1>E-KYC Identity Verification</h1>
+          <p class="lede">
+            Sign in or create a profile, capture a live camera photo, and finish with verified
+            account details from the backend.
+          </p>
         </div>
 
-        <ol class="steps" aria-label="Verification progress">
-          <li class="step is-active" data-step="login">Login</li>
-          <li class="step" data-step="face">Face ID</li>
-          <li class="step" data-step="profile">My info</li>
+        <ol class="progress-list" aria-label="Verification progress">
+          <li class="progress-step is-active" data-step="auth">
+            <strong>Account</strong>
+            <span>Login or register</span>
+          </li>
+          <li class="progress-step" data-step="camera">
+            <strong>Camera</strong>
+            <span>Live face photo</span>
+          </li>
+          <li class="progress-step" data-step="processing">
+            <strong>Processing</strong>
+            <span>Async job or instant token</span>
+          </li>
+          <li class="progress-step" data-step="profile">
+            <strong>Profile</strong>
+            <span>Verified user info</span>
+          </li>
         </ol>
+      </aside>
 
-        <form id="login-form" class="card form-view">
-          <label>
-            <span>Passport ID</span>
-            <input
-              id="passport-id"
-              name="passport_id"
-              autocomplete="username"
-              placeholder="AA1234567"
-              required
-            />
-          </label>
-          <label>
-            <span>Password</span>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autocomplete="current-password"
-              placeholder="Your password"
-              required
-            />
-          </label>
-          <button id="login-button" type="submit">Continue</button>
-        </form>
+      <section class="work-panel" aria-live="polite">
+        <section id="auth-view" class="view">
+          <div class="view-heading">
+            <div>
+              <p class="kicker">Begin</p>
+              <h2>Choose your entry point</h2>
+            </div>
+          </div>
 
-        <section id="verify-view" class="card verify-view is-hidden" aria-live="polite">
+          <div class="mode-tabs" role="tablist" aria-label="Authentication mode">
+            <button id="login-tab" class="tab-button is-active" type="button" data-mode="login">
+              Login
+            </button>
+            <button id="register-tab" class="tab-button" type="button" data-mode="register">
+              Register
+            </button>
+          </div>
+
+          <form id="login-form" class="form-grid">
+            <label>
+              <span>Passport ID</span>
+              <input name="passport_id" autocomplete="username" placeholder="AA1234567" required />
+            </label>
+            <label>
+              <span>Password</span>
+              <input
+                name="password"
+                type="password"
+                autocomplete="current-password"
+                placeholder="Your password"
+                required
+              />
+            </label>
+            <button id="login-button" class="primary-button" type="submit">Continue</button>
+          </form>
+
+          <form id="register-form" class="form-grid register-grid is-hidden">
+            <label>
+              <span>First name</span>
+              <input name="first_name" autocomplete="given-name" required />
+            </label>
+            <label>
+              <span>Last name</span>
+              <input name="last_name" autocomplete="family-name" required />
+            </label>
+            <label>
+              <span>Middle name</span>
+              <input name="middle_name" autocomplete="additional-name" required />
+            </label>
+            <label>
+              <span>Passport ID</span>
+              <input name="passport_id" autocomplete="username" placeholder="AA1234567" required />
+            </label>
+            <label>
+              <span>Date of birth</span>
+              <input name="date_of_birth" type="date" required />
+            </label>
+            <label>
+              <span>Password</span>
+              <input
+                name="password"
+                type="password"
+                autocomplete="new-password"
+                placeholder="Strong password"
+                required
+              />
+            </label>
+            <button id="register-button" class="primary-button wide-action" type="submit">
+              Create account
+            </button>
+          </form>
+        </section>
+
+        <section id="camera-view" class="view is-hidden">
+          <div class="view-heading">
+            <div>
+              <p class="kicker">Live capture</p>
+              <h2>Automatic Face ID capture</h2>
+            </div>
+          </div>
           <div class="camera-frame">
             <video id="camera" autoplay muted playsinline></video>
+            <canvas id="face-overlay" class="face-overlay"></canvas>
             <canvas id="snapshot" class="is-hidden"></canvas>
-            <div id="camera-placeholder" class="camera-placeholder">Camera is closed</div>
+            <div id="camera-placeholder" class="camera-placeholder">
+              <span>Camera is closed</span>
+            </div>
           </div>
-          <div class="capture-actions">
-            <button id="open-camera-button" type="button">Open camera</button>
-            <button id="capture-button" type="button" disabled>Take photo and verify</button>
+          <div class="capture-panel">
+            <p id="capture-status" class="capture-status">
+              Open the camera and place your face inside the guide.
+            </p>
+            <div class="quality-grid" aria-label="Capture quality">
+              <span data-quality="face">Face</span>
+              <span data-quality="fit">Fit</span>
+              <span data-quality="sharp">Sharp</span>
+              <span data-quality="light">Light</span>
+              <span data-quality="pose">Liveness</span>
+            </div>
+          </div>
+          <div class="button-row">
+            <button id="open-camera-button" class="secondary-button" type="button">
+              Open camera
+            </button>
+            <button id="capture-button" class="primary-button" type="button" disabled>
+              Capture now
+            </button>
           </div>
         </section>
 
-        <section id="profile-view" class="card profile-view is-hidden" aria-live="polite">
-          <div class="success-badge">Verified</div>
-          <dl id="profile-details" class="profile-details"></dl>
-          <button id="restart-button" type="button">Start again</button>
+        <section id="processing-view" class="view is-hidden">
+          <div class="view-heading">
+            <p class="kicker">Processing</p>
+            <h2>Face verification job</h2>
+          </div>
+          <div class="job-card">
+            <div class="spinner" aria-hidden="true"></div>
+            <div>
+              <p id="job-status" class="job-status">Waiting for backend response</p>
+              <p id="job-id" class="job-id"></p>
+            </div>
+          </div>
+        </section>
+
+        <section id="profile-view" class="view is-hidden">
+          <div class="view-heading profile-heading">
+            <div>
+              <p class="kicker">Verified</p>
+              <h2>My information</h2>
+            </div>
+            <span id="verified-pill" class="verified-pill">Verified</span>
+          </div>
+          <div id="profile-card" class="profile-card"></div>
+          <button id="restart-button" class="secondary-button" type="button">Start again</button>
         </section>
 
         <div id="message" class="message" role="status" aria-live="polite"></div>

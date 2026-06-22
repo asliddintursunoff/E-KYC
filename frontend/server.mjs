@@ -95,7 +95,7 @@ async function proxyApi(req, res) {
 }
 
 const server = http.createServer((req, res) => {
-  if (req.url?.startsWith("/api/")) {
+  if (req.url?.startsWith("/api/") || req.url?.startsWith("/media/")) {
     proxyApi(req, res);
     return;
   }

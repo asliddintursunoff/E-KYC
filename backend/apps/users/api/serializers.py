@@ -1,6 +1,16 @@
 from rest_framework import serializers
+from rest_framework.exceptions import AuthenticationFailed
+
+from django.contrib.auth import authenticate
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
+
+import re
 
 from apps.users.models import User
+from apps.users.tokens import TemporaryLoginToken
+
+
 
 
 class UserRegsiterSerializer(serializers.Serializer):
@@ -11,6 +21,7 @@ class UserRegsiterSerializer(serializers.Serializer):
     passport_id = serializers.CharField()
     password = serializers.CharField(write_only = True)
     date_of_birth = serializers.DateField(format="%d-%m-%Y")
+    selfie_verification_token = serializers.CharField(read_only = True)
 
     def validate_passport_id(self,value):
         pattern_exact = r"^[A-Z]{2}\d{7}$"
@@ -38,38 +49,31 @@ class UserRegsiterSerializer(serializers.Serializer):
 class UserInformationSerializer(UserRegsiterSerializer):
     image = serializers.ImageField(read_only = True)
     verified = serializers.BooleanField(read_only = True)
+    selfie_verification_token = None
+
 
 
      
 
 class FaceVerificationSerializer(serializers.Serializer):
-    image = serializers.ImageField()
-    
+    image = serializers.ImageField(write_only = True)
+    access_token = serializers.CharField(read_only = True)
+    refresh_token = serializers.CharField(read_only = True)
 
 
-
-    
-
-
-
-
-from django.contrib.auth import authenticate
-from django.contrib.auth.password_validation import validate_password
-from django.core.exceptions import ValidationError
-
-from rest_framework.exceptions import AuthenticationFailed
-from apps.users.tokens import TemporaryLoginToken
-import re
-
+class UserSelfieUploadVerificationSerializer(serializers.Serializer):
+    image = serializers.ImageField(write_only = True)
+    job_id = serializers.UUIDField(read_only = True)
+       
 
 
 
 
 #Login Serializer
 class UserLoginSerializer(serializers.Serializer):
-    passport_id = serializers.CharField()
-    password = serializers.CharField()
-
+    passport_id = serializers.CharField(write_only = True)
+    password = serializers.CharField(write_only = True)
+    temporary_login_token = serializers.CharField(read_only = True)
     # def validate_passport_id(self,value):
     #     pattern_exact = r"^[A-Z]{2}\d{7}$"
     #     if len(value)!=9 or not re.match(pattern_exact, value.upper()):

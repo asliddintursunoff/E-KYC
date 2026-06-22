@@ -3,7 +3,7 @@ services:
   postgres_db:
     image: pgvector/pgvector:pg17
     container_name: postgres_pgvector
-    # restart: always
+    restart: always
     
     environment:
       POSTGRES_USER: postgres
@@ -23,20 +23,45 @@ services:
     volumes:
       - redis_data:/data
 
+  frontend:
+    build: ./frontend
+    container_name: e_kyc_frontend
+    restart: always
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3000
+      BACKEND_ORIGIN: http://host.docker.internal:8000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "3000:3000"
 
-  # frontend:
-  #   build:
-  #     context: ./frontend
-  #   container_name: e_kyc_frontend
+
+  # web_backend:
+  #   build: ./backend
+  #   restart: always
+  #   command: python manage.py runserver 0.0.0.0:8000
+  #   container_name: web_backend
+  #   volumes:
+  #     - media_data:/app/media
+  #   depends_on:
+  #     - postgres_db
   #   ports:
-  #     - "3000:3000"
-  #   environment:
-  #     HOST: 0.0.0.0
-  #     PORT: 3000
-  #     BACKEND_ORIGIN: http://host.docker.internal:8000
-  #   extra_hosts:
-  #     - "host.docker.internal:host-gateway"
+  #     - "8000:8000"
+    
+  # celery_worker:
+  #   build: ./backend
+  #   restart: always
+  #   command: celery -A config worker --loglevel=info
+  #   container_name: celery_worker
+  #   volumes:
+  #     - media_data:/app/media
+  #   depends_on:
+  #     - postgres_db
+  #     - redis_db
+   
 
 volumes:
   postgres_data_v:
   redis_data:
+  media_data:

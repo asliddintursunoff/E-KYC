@@ -31,7 +31,7 @@ class FaceVerificationService:
                         distance=CosineDistance('embedding', embedding)
                         ).order_by('distance').first()
 
-            if (person.distance<0 or person.distance>0.3):
+            if (person.distance<0 or person.distance>0.5):
                 raise AuthenticationFailed('Person from photo can not be identified')
 
         
