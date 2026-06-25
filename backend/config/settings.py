@@ -64,14 +64,18 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres',
-        'HOST':'postgres_db',
-        'USER':'postgres',
-        'PORT':'5432',
-        'PASSWORD':'password'
+        'NAME': os.getenv('DB_NAME'),
+        'HOST': os.getenv('DB_HOST'),
+        'USER': os.getenv('DB_NAME'),
+        'PORT': os.getenv('DB_PORT'),
+        'PASSWORD': os.getenv('DB_password'),
     }
 }
 
