@@ -48,17 +48,29 @@ jobs:
           envs: DB_HOST,DB_PORT,DB_NAME,DB_USER,DB_PASSWORD
           script: |
             REGISTRY="${{ needs.build-and-push.outputs.registry }}"
+            IMAGE_TAG="${{ github.sha }}"
+            
+            # Log into ECR
             aws ecr get-login-password --region us-east-1 | sudo docker login --username AWS --password-stdin $REGISTRY
-            sudo docker pull $REGISTRY/ekyc-web-backend:latest
+            
+            # 1. Pull the exact unique commit image (bypasses EC2 caching bugs)
+            sudo docker pull $REGISTRY/ekyc-web-backend:$IMAGE_TAG
+            
+            # 2. Safely stop and delete the old container to avoid name conflicts
             sudo docker stop ekyc-web || true
             sudo docker rm ekyc-web || true
+            
+            # 3. Launch the new container using the fresh commit image tag
             sudo docker run -d -p 8000:8000 --name ekyc-web \
               -e DB_HOST="$DB_HOST" \
               -e DB_PORT="$DB_PORT" \
               -e DB_NAME="$DB_NAME" \
               -e DB_USER="$DB_USER" \
               -e DB_PASSWORD="$DB_PASSWORD" \
-              $REGISTRY/ekyc-web-backend:latest
+              $REGISTRY/ekyc-web-backend:$IMAGE_TAG
+              
+            # 4. Clean up old untagged images to prevent EC2 disk from filling up
+            sudo docker image prune -f
         env:
           DB_HOST: ${{ secrets.DB_HOST }}
           DB_PORT: ${{ secrets.DB_PORT }}
