@@ -4,7 +4,7 @@ on:
     branches: [main]
     paths:
       - 'backend/**'
-      - '.github/workflows/build-and-push.yml'
+      - '.github/workflows/build-push.yaml'
     
 env:
   AWS_REGION: us-east-1
