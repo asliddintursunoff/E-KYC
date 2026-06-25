@@ -37,28 +37,28 @@ services:
       - "3000:3000"
 
 
-  # web_backend:
-  #   build: ./backend
-  #   restart: always
-  #   command: python manage.py runserver 0.0.0.0:8000
-  #   container_name: web_backend
-  #   volumes:
-  #     - media_data:/app/media
-  #   depends_on:
-  #     - postgres_db
-  #   ports:
-  #     - "8000:8000"
+  web_backend:
+    build: ./backend
+    restart: always
+    command: python manage.py runserver 0.0.0.0:8000
+    container_name: web_backend
+    volumes:
+      - media_data:/app/media
+    depends_on:
+      - postgres_db
+    ports:
+      - "8000:8000"
     
-  # celery_worker:
-  #   build: ./backend
-  #   restart: always
-  #   command: celery -A config worker --loglevel=info
-  #   container_name: celery_worker
-  #   volumes:
-  #     - media_data:/app/media
-  #   depends_on:
-  #     - postgres_db
-  #     - redis_db
+  celery_worker:
+    build: ./backend
+    restart: always
+    command: celery -A config worker --loglevel=info
+    container_name: celery_worker
+    volumes:
+      - media_data:/app/media
+    depends_on:
+      - postgres_db
+      - redis_db
    
 
 volumes:

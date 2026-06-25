@@ -3,3 +3,11 @@ env
 env/
 /env
 .env
+.agents
+*/agents
+/.codex
+aws/
+/aws/
+*/aws/
+awscliv2.zip
+*.pem

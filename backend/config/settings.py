@@ -68,9 +68,9 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'postgres',
-        'HOST':'localhost',
+        'HOST':'postgres_db',
         'USER':'postgres',
-        'PORT':'5433',
+        'PORT':'5432',
         'PASSWORD':'password'
     }
 }
@@ -134,6 +134,7 @@ REST_FRAMEWORK = {
     }
 }
 
+
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
@@ -150,8 +151,8 @@ SPECTACULAR_SETTINGS = {
 
 
 
-CELERY_BROKER_URL = "redis://localhost:6379/0"
-CELERY_RESULT_BACKEND = "redis://localhost:6379/1"
+CELERY_BROKER_URL = "redis://redis_db:6379/0"
+CELERY_RESULT_BACKEND = "redis://redis_db:6379/1"
 
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"

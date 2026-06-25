@@ -47,7 +47,7 @@ class UserCreateGenericAPIView(CreateAPIView):
             **self.serializer.data,
             "selfie_verification_token": str(temporary_token)
         }, status=status.HTTP_201_CREATED)
-   
+
     
 class SelfieUploadVerificationAPIView(GenericAPIView):
     serializer_class = UserSelfieUploadVerificationSerializer
