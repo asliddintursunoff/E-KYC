@@ -13,28 +13,42 @@ env:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-
+    outputs:
+      registry: ${{ steps.ecr-login.outputs.registry }}    
     steps:
-      - name: Checkout code
-        uses: actions/Checkout@v4
-
+      - uses: actions/checkout@v4
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
-
       - name: Login to Amazon ECR
         id: ecr-login
         uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Build, tag and push
+      - name: Build, tag, and push image
         env:
           REGISTRY: ${{ steps.ecr-login.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
-
         run: |
-          docker build -t $REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $REGISTRY/$ECR_REPOSITORY:latest -f backend/Dockerfile backend
-          docker push $REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker push $REGISTRY/$ECR_REPOSITORY:latest
+          docker build -t $REGISTRY/ekyc-web-backend:$IMAGE_TAG -t $REGISTRY/ekyc-web-backend:latest -f backend/Dockerfile backend
+          docker push $REGISTRY/ekyc-web-backend:$IMAGE_TAG
+          docker push $REGISTRY/ekyc-web-backend:latest
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            REGISTRY="${{ needs.build-and-push.outputs.registry }}"
+            aws ecr get-login-password --region us-east-1 | sudo docker login --username AWS --password-stdin $REGISTRY
+            sudo docker pull $REGISTRY/ekyc-web-backend:latest
+            sudo docker stop ekyc-web || true
+            sudo docker rm ekyc-web || true
+            sudo docker run -d -p 8000:8000 --name ekyc-web $REGISTRY/ekyc-web-backend:latest
