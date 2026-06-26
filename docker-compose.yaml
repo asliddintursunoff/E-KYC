@@ -1,27 +1,31 @@
-version: '5.3'
+version: '3.8'
 services:
-  postgres_db:
-    image: pgvector/pgvector:pg17
-    container_name: postgres_pgvector
-    restart: always
-    
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: postgres
-    ports:
-      - "5433:5432"
-
-    volumes:
-      - postgres_data_v:/var/lib/postgresql/data
+  # postgres_db:
+  #   image: pgvector/pgvector:pg17
+  #   container_name: postgres_pgvector
+  #   restart: always
+  #   environment:
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: password
+  #     POSTGRES_DB: postgres
+  #   ports:
+  #     - "5433:5432"
+  #   volumes:
+  #     - postgres_data_v:/var/lib/postgresql/data
 
   redis_db:
     image: redis:7.2-alpine
     container_name: redis_db
-    ports:
-      - "6379:6379"
+    expose:
+      - "6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: always
 
   frontend:
     build: ./frontend
@@ -36,7 +40,6 @@ services:
     ports:
       - "3000:3000"
 
-
   web_backend:
     build: ./backend
     restart: always
@@ -44,11 +47,20 @@ services:
     container_name: web_backend
     volumes:
       - media_data:/app/media
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis_db
+      - REDIS_PORT=6379
     depends_on:
-      - postgres_db
+      redis_db:
+        condition: service_healthy
     ports:
       - "8000:8000"
-    
+
   celery_worker:
     build: ./backend
     restart: always
@@ -56,12 +68,18 @@ services:
     container_name: celery_worker
     volumes:
       - media_data:/app/media
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis_db
+      - REDIS_PORT=6379
     depends_on:
-      - postgres_db
-      - redis_db
-   
+      redis_db:
+        condition: service_healthy
 
 volumes:
-  postgres_data_v:
   redis_data:
   media_data:
