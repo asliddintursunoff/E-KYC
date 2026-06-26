@@ -27,18 +27,18 @@ services:
       retries: 5
     restart: always
 
-  frontend:
-    image: ${DOCKERHUB_USERNAME}/ekyc-frontend:${IMAGE_TAG}
-    container_name: e_kyc_frontend
-    restart: always
-    environment:
-      HOST: 0.0.0.0
-      PORT: 3000
-      BACKEND_ORIGIN: http://host.docker.internal:8000
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    ports:
-      - "3000:3000"
+  # frontend:
+  #   image: ${DOCKERHUB_USERNAME}/ekyc-frontend:${IMAGE_TAG}
+  #   container_name: e_kyc_frontend
+  #   restart: always
+  #   environment:
+  #     HOST: 0.0.0.0
+  #     PORT: 3000
+  #     BACKEND_ORIGIN: http://host.docker.internal:8000
+  #   extra_hosts:
+  #     - "host.docker.internal:host-gateway"
+  #   ports:
+  #     - "3000:3000"
 
   web_backend:
     image: ${DOCKERHUB_USERNAME}/ekyc-web-backend:${IMAGE_TAG}
