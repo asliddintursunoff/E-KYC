@@ -1,5 +1,18 @@
 name: BUILD-and-DEPLOY AWS
 
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/build-push.yaml'
+      - 'frontend/**'
+      - 'docker-compose.yaml'
+    
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: ekyc-web-backend
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
