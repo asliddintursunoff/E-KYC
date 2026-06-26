@@ -28,7 +28,7 @@ services:
     restart: always
 
   frontend:
-    build: ./frontend
+    image: ${DOCKERHUB_USERNAME}/ekyc-frontend:${IMAGE_TAG}
     container_name: e_kyc_frontend
     restart: always
     environment:
@@ -41,7 +41,7 @@ services:
       - "3000:3000"
 
   web_backend:
-    build: ./backend
+    image: ${DOCKERHUB_USERNAME}/ekyc-web-backend:${IMAGE_TAG}
     restart: always
     command: python manage.py runserver 0.0.0.0:8000
     container_name: web_backend
@@ -62,7 +62,7 @@ services:
       - "8000:8000"
 
   celery_worker:
-    build: ./backend
+    image: ${DOCKERHUB_USERNAME}/ekyc-web-backend:${IMAGE_TAG}
     restart: always
     command: celery -A config worker --loglevel=info
     container_name: celery_worker
