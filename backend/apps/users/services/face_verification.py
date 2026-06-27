@@ -1,10 +1,26 @@
 import numpy as np
 from pgvector.django import CosineDistance
 
-from ml.face_detector import FaceDetector
-from apps.common.exceptions import FaceVerificationException
+
 from django.apps import apps
 from rest_framework.exceptions import AuthenticationFailed
+
+from ml.face_detector import ( FaceDetector,
+                                MultipleFacesFound,
+                                NoFaceFound,
+                                GlassesFound,
+                                CoveredFace,
+                                NotFrontLooking
+                                )
+from apps.common.exceptions import (FaceVerificationException,
+                                    GlassFoundException,
+                                    MaskFoundException,
+                                    NoFaceFoundException,
+                                    MultipleFaceFoundException,
+                                    DifferentPersonException,
+                                    NotFrontLookingException
+                                    )
+
 
 User = apps.get_model('users',"User")
 
@@ -25,32 +41,49 @@ class FaceVerificationService:
         model = FaceVerificationService.get_model()
         try:
             
-            embedding = model.identify_user(image)
-       
+            ml_result = model.identify_user(image)
+            embedding= ml_result['embedding']
             person = User.objects.filter(id=user.id).annotate(
                         distance=CosineDistance('embedding', embedding)
                         ).order_by('distance').first()
 
+            
             if (person.distance<0 or person.distance>0.5):
-                raise AuthenticationFailed('Person from photo can not be identified')
-
+                raise DifferentPersonException(data={'face_location':ml_result["face_location"]})
+            
         
-        except AuthenticationFailed as e:
-            raise AuthenticationFailed(str(e))
-           
-        except Exception as e:
-            raise FaceVerificationException(str(e))
+        except NotFrontLooking as e:
+            raise NotFrontLookingException(data=e.data)
+        except MultipleFacesFound as e:
+            raise MultipleFaceFoundException(data=e.data)
+        except NoFaceFound as e:
+            raise NoFaceFoundException(data=e.data)
+        
+        except GlassesFound as e:
+            raise GlassFoundException(data=e.data)
+        except CoveredFace as e:
+            raise MaskFoundException(data=e.data)
+        
         
 
     @staticmethod
     def register_user_selfie(image,user_id):
         model = FaceVerificationService.get_model()
         try:
-            embedding = model.identify_user(image)
-            
+            ml_result = model.identify_user(image)
+            embedding = ml_result["embedding"]
             User.objects.filter(id = user_id).update(embedding = embedding,verified = True)
 
          
-        except Exception as e:
-            raise FaceVerificationException(str(e))
+        except NotFrontLooking as e:
+            raise NotFrontLookingException()
+        except MultipleFacesFound as e:
+            raise MultipleFaceFoundException()
+        except NoFaceFound as e:
+            raise NoFaceFoundException()
+        
+        except GlassesFound as e:
+            raise GlassFoundException()
+        except CoveredFace as e:
+            raise MaskFoundException()
         

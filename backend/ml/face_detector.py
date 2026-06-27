@@ -2,27 +2,31 @@ import onnxruntime as ort
 import insightface
 import cv2
 import numpy as np
-from uuid import UUID
-
-from pgvector.django import CosineDistance
 
 from django.conf import settings
-from apps.users.models import User
 
 
 
-class NotFrontLooking(Exception):
+class MLBaseException(Exception):
+    data:dict = None
+    
+    def __init__(
+        self,message="",data=None):
+        self.data = data or {}
+        super().__init__(message)
+    
+class NotFrontLooking(MLBaseException):
     pass
 
-class MultipleFacesFound(Exception):
+class MultipleFacesFound(MLBaseException):
     pass
 
-class NoFaceFound(Exception):
+class NoFaceFound(MLBaseException):
     pass
 
-class CoveredFace(Exception):
+class CoveredFace(MLBaseException):
     pass
-class GlassesFound(Exception):
+class GlassesFound(MLBaseException):
     pass
 
 
@@ -32,41 +36,16 @@ class FaceDetector:
     GLASS_MODEL = ort.InferenceSession(settings.BASE_DIR / 'ml/weights/glass_detection.onnx')
     FACE_MODEL = insightface.app.FaceAnalysis("buffalo_s")
     
-    def __init__(self):
-        self.model = User
-
-
-
     
-    def register_selfie(self,photo,id:UUID):
-        img = cv2.imdecode(photo,cv2.IMREAD_COLOR)
+    MAX_YAW_DEGREES = 25     # left/right turn
+    MAX_PITCH_DEGREES = 20   # up/down tilt
+    MAX_ROLL_DEGREES = 20    # head tilt sideways
 
-       
-        face_info = self._face_info(img)
 
-        x1, y1, x2, y2 = [int(v) for v in face_info["face_location"]]
-        face_crop = img[y1:y2, x1:x2]
-
-        has_mask = self.__class__._has_mask(face_crop)
-
-        if has_mask:
-            raise CoveredFace('Face is covered, Make sure face is clean')
-        
-        has_glass = self.__class__._has_glasses(face_crop)
-
-        if has_glass:
-            raise GlassesFound('Glass is found, Make sure face is clean')
-        
-        embedding = face_info["embedding"]
-        embedding = embedding / np.linalg.norm(embedding)
-
-        obj = self.model.objects.filter(id = id).update(embedding = embedding)
-
-        return obj
 
         
     
-    def identify_user(self,photo)->bool:
+    def identify_user(self,photo)->dict:
         
         image_bytes = np.frombuffer(
             photo.read() if hasattr(photo, "read") else photo,
@@ -83,16 +62,19 @@ class FaceDetector:
         has_glass = self.__class__._has_glasses(face_crop)
 
         if has_glass:
-            raise GlassesFound('Glass is found, Make sure face is clean')
+            raise GlassesFound('Glass is found, Make sure face is clean',data={'face_location':face_info["face_location"].tolist()})
         has_mask = self.__class__._has_mask(face_crop)
         if has_mask:
-            raise CoveredFace('Face is covered, Make sure face is clean')
+            raise CoveredFace('Face is covered, Make sure face is clean',data={'face_location':face_info["face_location"].tolist()})
         
         
         embedding = face_info["embedding"]
         embedding = embedding / np.linalg.norm(embedding)
 
-        return embedding
+        return {
+            "embedding":embedding,
+            "face_location":face_info["face_location"].tolist()
+        }
         
         
 
@@ -104,12 +86,18 @@ class FaceDetector:
         faces = cls.FACE_MODEL.get(img_np_array)
 
         if len(faces) >1:
-            raise MultipleFacesFound("More than one face found")
+            raise MultipleFacesFound("More than one face found",data={
+                "face_location": [
+                    face["bbox"].tolist()
+                    for face in faces
+                ]
+            })
         
         elif len(faces) == 0:
             raise NoFaceFound("No face found")
         
         face = faces[0]
+        cls._check_frontal(face)
 
         data = {
             "face_location":face["bbox"],
@@ -145,3 +133,44 @@ class FaceDetector:
 
         detections = out[0] 
         return any(conf >= 0.5 for *_, conf, cls in detections)
+    
+    
+    @classmethod
+    def _check_frontal(cls, face) -> None:
+        pose = face.get("pose")
+        if pose is None:
+            # pose unavailable on this model pack — skip the check
+            # rather than silently passing bad data through
+            return
+
+        pitch, yaw, roll = pose
+
+        if abs(yaw) > cls.MAX_YAW_DEGREES:
+            raise NotFrontLooking(
+                "Please face the camera directly",
+                data={
+                    "face_location": face["bbox"].tolist(),
+                    "pose": {"pitch": float(pitch), "yaw": float(yaw), "roll": float(roll)},
+                    "reason": "yaw",
+                },
+            )
+
+        if abs(pitch) > cls.MAX_PITCH_DEGREES:
+            raise NotFrontLooking(
+                "Please look straight at the camera, not up or down",
+                data={
+                    "face_location": face["bbox"].tolist(),
+                    "pose": {"pitch": float(pitch), "yaw": float(yaw), "roll": float(roll)},
+                    "reason": "pitch",
+                },
+            )
+
+        if abs(roll) > cls.MAX_ROLL_DEGREES:
+            raise NotFrontLooking(
+                "Please keep your head level",
+                data={
+                    "face_location": face["bbox"].tolist(),
+                    "pose": {"pitch": float(pitch), "yaw": float(yaw), "roll": float(roll)},
+                    "reason": "roll",
+                },
+            )

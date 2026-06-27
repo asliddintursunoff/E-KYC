@@ -84,14 +84,18 @@ def get_job_info(request,job_id):
         refresh_token = RefreshToken().for_user(request.user)
         access_token = str(refresh_token.access_token)
         
-    return Response({
-        "job_id": job_id,
-        "status": result.status,
-        "error": str(result.result) if result.failed() else None,
-        "access_token":access_token,
-        "refresh_token":None if not refresh_token else str(refresh_token)
-    })
-
+        return Response({
+            "job_id": job_id,
+            "status": result.status,
+            "access_token":access_token,
+            "refresh_token":None if not refresh_token else str(refresh_token)
+        })
+    else:
+        return Response({
+            "job_id": job_id,
+            "status": result.status,
+            "error": str(result.result) if result.failed() else None,
+        })
 
 
 
@@ -108,30 +112,30 @@ class LoginAPIView(GenericAPIView):
 
 
 
-class VerificationAPIView(GenericAPIView):
-    serializer_class = FaceVerificationSerializer
-    authentication_classes = [TemporaryTokenAuthentication]
-    permission_classes = [IsAuthenticated]
-    parser_classes = [MultiPartParser,FormParser]
-    throttle_classes = [UserRateThrottle]
-    def post(self,request,*args,**kwargs):
-        serializer = self.get_serializer(data = request.data)
-        serializer.is_valid(raise_exception = True)
+# class VerificationAPIView(GenericAPIView):
+#     serializer_class = FaceVerificationSerializer
+#     authentication_classes = [TemporaryTokenAuthentication]
+#     permission_classes = [IsAuthenticated]
+#     parser_classes = [MultiPartParser,FormParser]
+#     throttle_classes = [UserRateThrottle]
+#     def post(self,request,*args,**kwargs):
+#         serializer = self.get_serializer(data = request.data)
+#         serializer.is_valid(raise_exception = True)
         
-        try:
-            FaceVerificationService.verify_user_selfie(serializer.validated_data['image'],request.user)
+#         try:
+#             FaceVerificationService.verify_user_selfie(serializer.validated_data['image'],request.user)
         
-        except AuthenticationFailed as e:
-            return Response({"detail":str(e)},status=status.HTTP_403_FORBIDDEN)
-        except Exception as e:
-            return Response({"detail":str(e)},status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+#         except AuthenticationFailed as e:
+#             return Response({"detail":str(e)},status=status.HTTP_403_FORBIDDEN)
+#         except Exception as e:
+#             return Response({"detail":str(e)},status=status.HTTP_422_UNPROCESSABLE_ENTITY)
 
-        refresh_token = RefreshToken().for_user(request.user)
-        access_token = refresh_token.access_token
-        return Response({
-            "access_token":str(access_token),
-            "refresh_token":str(refresh_token),
-        })
+#         refresh_token = RefreshToken().for_user(request.user)
+#         access_token = refresh_token.access_token
+#         return Response({
+#             "access_token":str(access_token),
+#             "refresh_token":str(refresh_token),
+#         })
 
 
 
