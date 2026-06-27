@@ -1,23 +1,23 @@
 version: '3.8'
 services:
-  # postgres_db:
-  #   image: pgvector/pgvector:pg17
-  #   container_name: postgres_pgvector
-  #   restart: always
-  #   environment:
-  #     POSTGRES_USER: postgres
-  #     POSTGRES_PASSWORD: password
-  #     POSTGRES_DB: postgres
-  #   ports:
-  #     - "5433:5432"
-  #   volumes:
-  #     - postgres_data_v:/var/lib/postgresql/data
+  postgres_db:
+    image: pgvector/pgvector:pg17
+    container_name: postgres_pgvector
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data_v:/var/lib/postgresql/data
 
   redis_db:
     image: redis:7.2-alpine
     container_name: redis_db
-    expose:
-      - "6379"
+    ports:
+      - "6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -27,6 +27,7 @@ services:
       retries: 5
     restart: always
 
+ 
 
   web_backend:
     image: ${DOCKERHUB_USERNAME}/ekyc-web-backend:${IMAGE_TAG}
@@ -57,11 +58,11 @@ services:
     volumes:
       - media_data:/app/media
     environment:
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
-      - DB_NAME=${DB_NAME}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=postgres_db
+      - DB_PORT=5432
+      - DB_NAME=postgres
+      - DB_USER=postgres
+      - DB_PASSWORD=password
       - REDIS_HOST=redis_db
       - REDIS_PORT=6379
     depends_on:
@@ -71,3 +72,4 @@ services:
 volumes:
   redis_data:
   media_data:
+  postgres_data_v:

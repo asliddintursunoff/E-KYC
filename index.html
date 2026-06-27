@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Face Verification — WS Test Client</title>
+<style>
+  * { box-sizing: border-box; }
+
+  :root {
+    --bg: #0a0a0c;
+    --glass-bg: rgba(255,255,255,0.05);
+    --glass-border: rgba(255,255,255,0.10);
+    --glass-border-strong: rgba(255,255,255,0.16);
+    --text: #f1f1f3;
+    --text-dim: #9a9aa3;
+    --blue: #3b82f6;
+    --green: #22c55e;
+    --red: #ef4444;
+    --amber: #f59e0b;
+    --radius: 16px;
+  }
+
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background:
+      radial-gradient(circle at 15% 0%, rgba(59,130,246,0.12), transparent 45%),
+      radial-gradient(circle at 85% 100%, rgba(34,197,94,0.10), transparent 45%),
+      var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 28px 16px 60px;
+  }
+
+  .page { width: 100%; max-width: 800px; display: flex; flex-direction: column; gap: 18px; }
+
+  header h1 { font-size: 24px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  header p { margin: 0; color: var(--text-dim); font-size: 14px; }
+
+  .glass {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+  }
+
+  /* ---------- Config card ---------- */
+  .config { padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
+  .field input {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--glass-border);
+    color: var(--text);
+    padding: 10px 13px;
+    border-radius: 10px;
+    font-size: 13.5px;
+    font-family: ui-monospace, monospace;
+  }
+  .field input:focus { outline: none; border-color: var(--blue); }
+  .field-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .field-row .field { flex: 1; min-width: 220px; }
+
+  .btn-row { display: flex; gap: 10px; margin-top: 4px; }
+  button {
+    border: none;
+    padding: 12px 22px;
+    border-radius: 10px;
+    font-size: 14.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter 0.15s ease, transform 0.1s ease;
+  }
+  button:active { transform: scale(0.98); }
+  button:disabled { background: #38383d !important; color: #777; cursor: not-allowed; }
+  button:hover:not(:disabled) { filter: brightness(1.12); }
+  .btn-start { background: var(--blue); color: white; flex: 1; }
+  .btn-stop { background: var(--red); color: white; flex: 1; }
+
+  /* ---------- Status strip ---------- */
+  .status-strip { display: flex; align-items: center; gap: 18px; padding: 12px 20px; flex-wrap: wrap; }
+  .conn-indicator { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: #555; box-shadow: 0 0 0 0 rgba(0,0,0,0); }
+  .dot.connecting { background: var(--amber); animation: pulse 1s infinite; }
+  .dot.connected { background: var(--green); }
+  .dot.closed { background: var(--red); }
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(245,158,11,0.6); }
+    70%  { box-shadow: 0 0 0 6px rgba(245,158,11,0); }
+    100% { box-shadow: 0 0 0 0 rgba(245,158,11,0); }
+  }
+
+  .stat { font-size: 13px; color: var(--text-dim); }
+  .stat b { color: var(--text); font-weight: 700; }
+
+  /* ---------- Video area ---------- */
+  .video-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: #000;
+    border: 1px solid var(--glass-border);
+  }
+  video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transform: scaleX(-1);
+  }
+  canvas#boxes {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+  .video-placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-dim);
+    font-size: 14px;
+    text-align: center;
+    padding: 20px;
+  }
+
+  .status-banner {
+    position: absolute;
+    left: 14px; right: 14px; bottom: 14px;
+    padding: 16px 20px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.45;
+    text-align: center;
+    background: rgba(40,40,45,0.85);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--glass-border-strong);
+    transition: background 0.2s ease;
+    z-index: 5;
+  }
+  .status-banner .tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    background: rgba(0,0,0,0.32);
+    padding: 3px 9px;
+    border-radius: 6px;
+    margin-bottom: 7px;
+  }
+  .banner-idle    { background: rgba(50,50,56,0.82); }
+  .banner-info    { background: rgba(37,99,235,0.85); }
+  .banner-error   { background: rgba(220,38,38,0.90); }
+  .banner-success { background: rgba(22,163,74,0.92); }
+
+  /* ---------- Logs ---------- */
+  .logs-card { padding: 14px 18px; }
+  .logs-card .logs-title {
+    font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--text-dim); margin-bottom: 8px; display: flex; justify-content: space-between;
+  }
+  .logs {
+    max-height: 190px;
+    overflow-y: auto;
+    font-family: ui-monospace, "SF Mono", monospace;
+    font-size: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .logs .line { color: var(--text-dim); }
+  .logs .line.ok    { color: #6ee7a0; }
+  .logs .line.err   { color: #fb8a8a; }
+  .logs .line.info  { color: #8ab4f8; }
+  .logs .line .t { opacity: 0.55; margin-right: 6px; }
+
+  /* ---------- Profile card ---------- */
+  .profile-card { padding: 22px 24px; display: none; }
+  .profile-card.visible { display: block; }
+  .profile-card .ph {
+    display: flex; align-items: center; gap: 14px; margin-bottom: 18px;
+  }
+  .profile-card .ph img {
+    width: 64px; height: 64px; border-radius: 50%;
+    object-fit: cover; border: 2px solid var(--green);
+    background: #222;
+  }
+  .profile-card h3 { margin: 0 0 4px; font-size: 18px; }
+  .pill {
+    display: inline-block; font-size: 11.5px; font-weight: 700;
+    padding: 3px 10px; border-radius: 20px; letter-spacing: 0.03em;
+  }
+  .pill.yes { background: rgba(34,197,94,0.18); color: #6ee7a0; border: 1px solid rgba(34,197,94,0.35); }
+  .pill.no  { background: rgba(239,68,68,0.18); color: #fb8a8a; border: 1px solid rgba(239,68,68,0.35); }
+
+  .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 13px 22px; }
+  @media (max-width: 540px) { .profile-grid { grid-template-columns: 1fr; } }
+  .pf { display: flex; flex-direction: column; gap: 2px; }
+  .pf .l { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-dim); }
+  .pf .v { font-size: 14.5px; font-weight: 500; word-break: break-word; }
+
+  footer { text-align: center; color: #555; font-size: 11.5px; margin-top: 6px; }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header>
+    <h1>Face Verification — WS Test Client</h1>
+    <p>Streams camera frames as binary JPEG over a WebSocket and reports verification results live.</p>
+  </header>
+
+  <!-- Config -->
+  <section class="glass config">
+    <div class="field-row">
+      <div class="field">
+        <label for="wsUrl">WebSocket URL</label>
+        <input id="wsUrl" type="text" value="ws://localhost:8000/ws/verification/" />
+      </div>
+      <div class="field">
+        <label for="apiBase">API Base URL</label>
+        <input id="apiBase" type="text" value="http://localhost:8000" />
+      </div>
+    </div>
+    <div class="btn-row">
+      <button id="startBtn" class="btn-start">Start Verification</button>
+      <button id="stopBtn" class="btn-stop" disabled>Stop</button>
+    </div>
+  </section>
+
+  <!-- Status strip -->
+  <section class="glass status-strip">
+    <div class="conn-indicator"><span class="dot" id="connDot"></span><span id="connText">Disconnected</span></div>
+    <div class="stat">Frames sent: <b id="frameCount">0</b></div>
+    <div class="stat">Bytes sent: <b id="byteCount">0 B</b></div>
+  </section>
+
+  <!-- Video -->
+  <section class="video-wrap" id="videoWrap">
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="boxes"></canvas>
+    <div class="video-placeholder" id="videoPlaceholder">Camera preview will appear here — press “Start Verification”</div>
+    <div class="status-banner banner-idle" id="statusBanner">Idle — press Start Verification</div>
+  </section>
+
+  <!-- Profile card -->
+  <section class="glass profile-card" id="profileCard">
+    <div class="ph">
+      <img id="pfImage" src="" alt="profile" onerror="this.style.visibility='hidden'" />
+      <div>
+        <h3 id="pfName">—</h3>
+        <span class="pill yes" id="pfVerifiedPill">VERIFIED</span>
+      </div>
+    </div>
+    <div class="profile-grid" id="profileGrid"></div>
+  </section>
+
+  <!-- Logs -->
+  <section class="glass logs-card">
+    <div class="logs-title"><span>Logs</span><span id="logCount">0 entries</span></div>
+    <div class="logs" id="logs"></div>
+  </section>
+
+  <footer>Single-file test client · no build step · open directly in a browser</footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------- DOM refs ----------
+  const video = document.getElementById('video');
+  const boxesCanvas = document.getElementById('boxes');
+  const boxesCtx = boxesCanvas.getContext('2d');
+  const videoPlaceholder = document.getElementById('videoPlaceholder');
+  const statusBanner = document.getElementById('statusBanner');
+  const startBtn = document.getElementById('startBtn');
+  const stopBtn = document.getElementById('stopBtn');
+  const wsUrlInput = document.getElementById('wsUrl');
+  const apiBaseInput = document.getElementById('apiBase');
+  const logsEl = document.getElementById('logs');
+  const logCountEl = document.getElementById('logCount');
+  const connDot = document.getElementById('connDot');
+  const connText = document.getElementById('connText');
+  const frameCountEl = document.getElementById('frameCount');
+  const byteCountEl = document.getElementById('byteCount');
+  const profileCard = document.getElementById('profileCard');
+  const profileGrid = document.getElementById('profileGrid');
+
+  // ---------- Config ----------
+  const SEND_INTERVAL_MS = 700;
+  const JPEG_QUALITY = 0.85;
+
+  // ---------- State ----------
+  let stream = null;
+  let ws = null;
+  let sendTimer = null;
+  let captureCanvas = null;
+  let captureCtx = null;
+  let isVerifying = false;
+  let frameCount = 0;
+  let byteCount = 0;
+  let logEntryCount = 0;
+
+  // ============================================================
+  // Logging
+  // ============================================================
+  function log(msg, level) {
+    level = level || '';
+    logEntryCount++;
+    const line = document.createElement('div');
+    line.className = 'line' + (level ? ' ' + level : '');
+    const time = new Date().toLocaleTimeString();
+    line.innerHTML = `<span class="t">${time}</span>${escapeHtml(msg)}`;
+    logsEl.appendChild(line);
+    logsEl.scrollTop = logsEl.scrollHeight;
+    logCountEl.textContent = `${logEntryCount} entries`;
+  }
+
+  function escapeHtml(str) {
+    const d = document.createElement('div');
+    d.textContent = String(str);
+    return d.innerHTML;
+  }
+
+  // ============================================================
+  // Status banner (big overlay on video)
+  // ============================================================
+  function setBanner(text, kind, tag) {
+    statusBanner.className = `status-banner banner-${kind}`;
+    statusBanner.innerHTML = tag
+      ? `<div class="tag">${escapeHtml(tag)}</div>${escapeHtml(text)}`
+      : escapeHtml(text);
+  }
+
+  // ============================================================
+  // Connection indicator + counters
+  // ============================================================
+  function setConnIndicator(state, label) {
+    connDot.className = 'dot ' + state;
+    connText.textContent = label;
+  }
+
+  function bumpFrameStats(byteLength) {
+    frameCount += 1;
+    byteCount += byteLength;
+    frameCountEl.textContent = frameCount.toString();
+    byteCountEl.textContent = formatBytes(byteCount);
+  }
+
+  function resetStats() {
+    frameCount = 0;
+    byteCount = 0;
+    frameCountEl.textContent = '0';
+    byteCountEl.textContent = '0 B';
+  }
+
+  function formatBytes(n) {
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+    return `${(n / (1024 * 1024)).toFixed(2)} MB`;
+  }
+
+  // ============================================================
+  // Camera
+  // ============================================================
+  async function startCamera() {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { width: { ideal: 1280 }, height: { ideal: 960 }, facingMode: 'user' },
+      audio: false,
+    });
+    video.srcObject = stream;
+    await video.play();
+    videoPlaceholder.style.display = 'none';
+
+    syncCanvasSize();
+
+    captureCanvas = document.createElement('canvas');
+    captureCanvas.width = video.videoWidth || 1280;
+    captureCanvas.height = video.videoHeight || 960;
+    captureCtx = captureCanvas.getContext('2d');
+
+    log(`Camera started (${captureCanvas.width}x${captureCanvas.height})`, 'ok');
+  }
+
+  function stopCamera() {
+    if (stream) {
+      stream.getTracks().forEach(t => t.stop());
+      stream = null;
+    }
+    videoPlaceholder.style.display = 'flex';
+    clearBoxes();
+  }
+
+  // canvas overlay must match the *displayed* size of the video element,
+  // since CSS object-fit: cover means displayed size != native video resolution
+  function syncCanvasSize() {
+    const rect = video.getBoundingClientRect();
+    boxesCanvas.width = rect.width;
+    boxesCanvas.height = rect.height;
+  }
+  window.addEventListener('resize', syncCanvasSize);
+
+  // ============================================================
+  // Frame capture + send (binary, raw JPEG bytes — no base64/JSON)
+  // ============================================================
+  function captureFrameBlob() {
+    captureCtx.drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height);
+    return new Promise((resolve) => {
+      captureCanvas.toBlob((blob) => resolve(blob), 'image/jpeg', JPEG_QUALITY);
+    });
+  }
+
+  async function sendFrame() {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    try {
+      const blob = await captureFrameBlob();
+      const buffer = await blob.arrayBuffer();
+      ws.send(buffer);
+      bumpFrameStats(buffer.byteLength);
+    } catch (err) {
+      log(`Frame capture error: ${err.message}`, 'err');
+      setBanner(`Frame capture error: ${err.message}`, 'error', 'CLIENT_ERROR');
+    }
+  }
+
+  function startSendingFrames() {
+    sendTimer = setInterval(sendFrame, SEND_INTERVAL_MS);
+  }
+
+  function stopSendingFrames() {
+    if (sendTimer) {
+      clearInterval(sendTimer);
+      sendTimer = null;
+    }
+  }
+
+  // ============================================================
+  // Face box rendering
+  //
+  // Server sends coords in ORIGINAL (unmirrored) frame space, sized to the
+  // frame we sent (captureCanvas.width x captureCanvas.height).
+  // The video element is mirrored via CSS scaleX(-1) and displayed at a
+  // possibly different size (object-fit: cover), so each box must be:
+  //   1. scaled from capture-frame space -> displayed-video space
+  //   2. mirrored horizontally to match the visual flip
+  // ============================================================
+  function clearBoxes() {
+    boxesCtx.clearRect(0, 0, boxesCanvas.width, boxesCanvas.height);
+  }
+
+  function drawFaceBoxes(faceLocation) {
+    clearBoxes();
+    if (!faceLocation || !captureCanvas) return;
+
+    // normalize to an array of boxes: either [x1,y1,x2,y2] or [[x1,y1,x2,y2], ...]
+    const isSingleBox = typeof faceLocation[0] === 'number';
+    const boxes = isSingleBox ? [faceLocation] : faceLocation;
+    if (!boxes.length) return;
+
+    // object-fit: cover scaling math: the video's *native* resolution is
+    // cropped to fill the displayed box, so we compute the cover scale/offset
+    const displayW = boxesCanvas.width;
+    const displayH = boxesCanvas.height;
+    const nativeW = captureCanvas.width;
+    const nativeH = captureCanvas.height;
+
+    const scale = Math.max(displayW / nativeW, displayH / nativeH);
+    const renderedW = nativeW * scale;
+    const renderedH = nativeH * scale;
+    const offsetX = (displayW - renderedW) / 2;
+    const offsetY = (displayH - renderedH) / 2;
+
+    boxesCtx.lineWidth = 3;
+    boxesCtx.strokeStyle = '#22c55e';
+    boxesCtx.shadowColor = 'rgba(34,197,94,0.6)';
+    boxesCtx.shadowBlur = 6;
+    boxesCtx.font = '600 13px system-ui, sans-serif';
+    boxesCtx.fillStyle = '#22c55e';
+
+    boxes.forEach((box, i) => {
+      let [x1, y1, x2, y2] = box;
+
+      // scale from native capture space -> displayed (cover) space
+      x1 = x1 * scale + offsetX;
+      x2 = x2 * scale + offsetX;
+      y1 = y1 * scale + offsetY;
+      y2 = y2 * scale + offsetY;
+
+      // mirror horizontally to match the CSS scaleX(-1) on the video,
+      // so the box lines up with what the user actually sees
+      const mx1 = displayW - x2;
+      const mx2 = displayW - x1;
+
+      boxesCtx.strokeRect(mx1, y1, mx2 - mx1, y2 - y1);
+      if (boxes.length > 1) {
+        boxesCtx.shadowBlur = 0;
+        boxesCtx.fillText(`#${i + 1}`, mx1 + 4, y1 - 6 > 10 ? y1 - 6 : y1 + 14);
+        boxesCtx.shadowBlur = 6;
+      }
+    });
+  }
+
+  // ============================================================
+  // Profile card
+  // ============================================================
+  function renderProfile(profile) {
+    const fullName = [profile.first_name, profile.middle_name, profile.last_name]
+      .filter(Boolean).join(' ') || '—';
+    document.getElementById('pfName').textContent = fullName;
+
+    const pill = document.getElementById('pfVerifiedPill');
+    pill.textContent = profile.verified ? 'VERIFIED' : 'NOT VERIFIED';
+    pill.className = 'pill ' + (profile.verified ? 'yes' : 'no');
+
+    const img = document.getElementById('pfImage');
+    if (profile.image) {
+      img.src = profile.image;
+      img.style.visibility = 'visible';
+    } else {
+      img.style.visibility = 'hidden';
+    }
+
+    const fields = [
+      ['ID', profile.id],
+      ['Passport ID', profile.passport_id],
+      ['First name', profile.first_name],
+      ['Last name', profile.last_name],
+      ['Middle name', profile.middle_name],
+      ['Date of birth', profile.date_of_birth],
+    ];
+    profileGrid.innerHTML = fields.map(([label, value]) => `
+      <div class="pf">
+        <div class="l">${escapeHtml(label)}</div>
+        <div class="v">${value === null || value === undefined || value === '' ? '—' : escapeHtml(value)}</div>
+      </div>
+    `).join('');
+
+    profileCard.classList.add('visible');
+  }
+
+  async function fetchProfile(accessToken) {
+    const base = apiBaseInput.value.trim().replace(/\/$/, '');
+    const url = `${base}/api/users/me/`;
+    log(`Fetching profile: GET ${url}`, 'info');
+    try {
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+      if (!res.ok) {
+        const bodyText = await res.text();
+        log(`Profile fetch failed: HTTP ${res.status} — ${bodyText}`, 'err');
+        setBanner(`Verified, but profile fetch failed (HTTP ${res.status})`, 'error', 'PROFILE_FETCH_FAILED');
+        return;
+      }
+      const profile = await res.json();
+      log('Profile loaded successfully', 'ok');
+      renderProfile(profile);
+    } catch (err) {
+      log(`Profile fetch error: ${err.message}`, 'err');
+      setBanner(`Verified, but couldn't reach ${url}`, 'error', 'PROFILE_FETCH_FAILED');
+    }
+  }
+
+  // ============================================================
+  // WebSocket
+  // ============================================================
+  function connectWebSocket() {
+    const url = wsUrlInput.value.trim();
+    log(`Connecting to ${url}`, 'info');
+    setConnIndicator('connecting', 'Connecting…');
+
+    ws = new WebSocket(url);
+    ws.binaryType = 'arraybuffer';
+
+    ws.onopen = () => {
+      log('WebSocket connected', 'ok');
+      setConnIndicator('connected', 'Connected');
+      setBanner('Connected — verifying…', 'info', 'CONNECTING');
+      startSendingFrames();
+    };
+
+    ws.onmessage = (event) => {
+      let payload;
+      try {
+        payload = JSON.parse(event.data);
+      } catch {
+        log(`Non-JSON message received: ${event.data}`, 'err');
+        setBanner('Received an unexpected non-JSON message from server', 'error', 'PARSE_ERROR');
+        return;
+      }
+
+      const { type, code, message, data } = payload;
+      log(`Server message — type: ${type}, code: ${code}, message: ${message || ''}`,
+          type === 'success' ? 'ok' : (type === 'error' ? 'err' : 'info'));
+
+      if (type === 'success') {
+        clearBoxes();
+        setBanner(message || 'Identity verified', 'success', code || 'SUCCESS');
+        stopSendingFrames();
+        isVerifying = false;
+        finishVerification();
+
+        if (data && data.access_token) {
+          fetchProfile(data.access_token);
+        } else {
+          log('No access_token present in success payload', 'err');
+        }
+
+        setTimeout(() => {
+          if (ws && ws.readyState === WebSocket.OPEN) ws.close(1000, 'Verification complete');
+        }, 300);
+        return;
+      }
+
+      if (type === 'error') {
+        const text = message || 'Unknown error';
+        const errCode = code || 'undefined';
+        setBanner(text, 'error', errCode);
+
+        // draw / clear face boxes based on what this specific error tells us
+        if (data && data.face_location) {
+          drawFaceBoxes(data.face_location);
+        } else if (errCode === 'no_face' || (data && Object.keys(data).length === 0)) {
+          clearBoxes();
+        }
+        // non-fatal — keep streaming frames, server decides if/when to close
+        return;
+      }
+
+      // any other message type — just log it, nothing else to do
+    };
+
+    ws.onerror = () => {
+      log('WebSocket error event fired', 'err');
+    };
+
+    ws.onclose = (event) => {
+      const clean = event.code === 1000;
+      log(`WebSocket closed — code: ${event.code}, reason: ${event.reason || '(none)'}`, clean ? 'ok' : 'err');
+      setConnIndicator('closed', `Closed (${event.code})`);
+      stopSendingFrames();
+
+      if (isVerifying) {
+        if (!clean) {
+          setBanner(
+            `Socket Closed (${event.code}): ${event.reason || 'No reason provided'}`,
+            'error',
+            `CLOSE_${event.code}`
+          );
+        }
+        finishVerification();
+      }
+    };
+  }
+
+  // ============================================================
+  // Start / Stop
+  // ============================================================
+  function finishVerification() {
+    isVerifying = false;
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+  }
+
+  startBtn.addEventListener('click', async () => {
+    profileCard.classList.remove('visible');
+    resetStats();
+    clearBoxes();
+
+    try {
+      await startCamera();
+    } catch (err) {
+      log(`Camera error: ${err.message}`, 'err');
+      setBanner(`Camera error: ${err.message}`, 'error', 'CAMERA_ERROR');
+      return;
+    }
+
+    isVerifying = true;
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+    setBanner('Starting verification…', 'info', 'STARTING');
+    connectWebSocket();
+  });
+
+  stopBtn.addEventListener('click', () => {
+    stopSendingFrames();
+    if (ws) ws.close(1000, 'User cancelled');
+    stopCamera();
+    setConnIndicator('', 'Disconnected');
+    setBanner('Stopped by user', 'idle');
+    log('Stopped by user', 'info');
+    finishVerification();
+  });
+
+  video.addEventListener('loadedmetadata', syncCanvasSize);
+})();
+</script>
+
+</body>
+</html>
