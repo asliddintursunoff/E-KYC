@@ -51,7 +51,7 @@ class UserCreateGenericAPIView(CreateAPIView):
     
 class SelfieUploadVerificationAPIView(GenericAPIView):
     serializer_class = UserSelfieUploadVerificationSerializer
-    authentication_classes = [TemporaryTokenAuthentication,JWTAuthentication]
+    authentication_classes = [TemporaryTokenAuthentication]
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser,FormParser]
     throttle_classes = [UserRateThrottle]
@@ -73,7 +73,7 @@ class SelfieUploadVerificationAPIView(GenericAPIView):
 
 
 @api_view(['GET'])
-@authentication_classes([TemporaryTokenAuthentication,JWTAuthentication])
+@authentication_classes([TemporaryTokenAuthentication])
 @permission_classes([IsAuthenticated])
 @throttle_classes([UserRateThrottle])
 def get_job_info(request,job_id):

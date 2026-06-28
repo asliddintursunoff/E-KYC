@@ -1,87 +1,87 @@
 version: '3.8'
 
 services:
-  postgres_db:
-    image: pgvector/pgvector:pg17
-    container_name: postgres_pgvector
-    restart: always
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: postgres
-    ports:
-      - "5433:5432"
-    volumes:
-      - postgres_data_v:/var/lib/postgresql/data
+  # postgres_db:
+  #   image: pgvector/pgvector:pg17
+  #   container_name: postgres_pgvector
+  #   restart: always
+  #   environment:
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: password
+  #     POSTGRES_DB: postgres
+  #   ports:
+  #     - "5433:5432"
+  #   volumes:
+  #     - postgres_data_v:/var/lib/postgresql/data
 
-  redis_db:
-    image: redis:7.2-alpine
-    container_name: redis_db
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-    restart: always
+  # redis_db:
+  #   image: redis:7.2-alpine
+  #   container_name: redis_db
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 5s
+  #     timeout: 3s
+  #     retries: 5
+  #   restart: always
 
-  web_backend:
-    # image: ${DOCKERHUB_USERNAME}/ekyc-web-backend:${IMAGE_TAG}
-    build: ./backend
-    restart: always
-    command: python manage.py runserver 0.0.0.0:8000
-    container_name: web_backend
-    volumes:
-      - media_data:/app/media
-    environment:
-      - DB_HOST=postgres_db
-      - DB_PORT=5432
-      - DB_NAME=postgres
-      - DB_USER=postgres
-      - DB_PASSWORD=password
-      - REDIS_HOST=redis_db
-      - REDIS_PORT=6379
-    depends_on:
-      redis_db:
-        condition: service_healthy
-    ports:
-      - "8000:8000"
+  # web_backend:
+  #   # image: ${DOCKERHUB_USERNAME}/ekyc-web-backend:${IMAGE_TAG}
+  #   build: ./backend
+  #   restart: always
+  #   command: python manage.py runserver 0.0.0.0:8000
+  #   container_name: web_backend
+  #   volumes:
+  #     - media_data:/app/media
+  #   environment:
+  #     - DB_HOST=postgres_db
+  #     - DB_PORT=5432
+  #     - DB_NAME=postgres
+  #     - DB_USER=postgres
+  #     - DB_PASSWORD=password
+  #     - REDIS_HOST=redis_db
+  #     - REDIS_PORT=6379
+  #   depends_on:
+  #     redis_db:
+  #       condition: service_healthy
+  #   ports:
+  #     - "8000:8000"
 
-  celery_worker:
-    # image: ${DOCKERHUB_USERNAME}/ekyc-web-backend:${IMAGE_TAG}
-    build: ./backend
-    restart: always
-    command: celery -A config worker --loglevel=info
-    container_name: celery_worker
-    volumes:
-      - media_data:/app/media
-    environment:
-      - DB_HOST=postgres_db
-      - DB_PORT=5432
-      - DB_NAME=postgres
-      - DB_USER=postgres
-      - DB_PASSWORD=password
-      - REDIS_HOST=redis_db
-      - REDIS_PORT=6379
-    depends_on:
-      redis_db:
-        condition: service_healthy
+  # celery_worker:
+  #   # image: ${DOCKERHUB_USERNAME}/ekyc-web-backend:${IMAGE_TAG}
+  #   build: ./backend
+  #   restart: always
+  #   command: celery -A config worker --loglevel=info
+  #   container_name: celery_worker
+  #   volumes:
+  #     - media_data:/app/media
+  #   environment:
+  #     - DB_HOST=postgres_db
+  #     - DB_PORT=5432
+  #     - DB_NAME=postgres
+  #     - DB_USER=postgres
+  #     - DB_PASSWORD=password
+  #     - REDIS_HOST=redis_db
+  #     - REDIS_PORT=6379
+  #   depends_on:
+  #     redis_db:
+  #       condition: service_healthy
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_BASE_URL: http://localhost:8000
-        VITE_WS_BASE_URL: ws://localhost:8000
+        VITE_API_BASE_URL: http://3.91.8.141:8000
+        VITE_WS_BASE_URL: ws://3.91.8.141:8000
         VITE_FACE_FRAME_INTERVAL: "1"
     container_name: faceid_frontend
     restart: always
     ports:
-      - "5173:5173"
+      - "3000:5173"
     environment:
       # IMPORTANT: these values are read by the BROWSER, not by another
       # container. `web_backend` only resolves inside the Docker network —
@@ -89,11 +89,11 @@ services:
       # Use whatever address your browser can actually reach: localhost
       # if you're on the same machine as Docker, or the host's LAN IP
       # (e.g. http://192.168.1.50:8000) if testing from a phone/another device.
-      - VITE_API_BASE_URL=http://localhost:8000
-      - VITE_WS_BASE_URL=ws://localhost:8000
+      - VITE_API_BASE_URL=http://3.91.8.141:8000
+      - VITE_WS_BASE_URL=ws://3.91.8.141:8000
       - VITE_FACE_FRAME_INTERVAL=1
-    depends_on:
-      - web_backend
+    # depends_on:
+    #   - web_backend
 
 volumes:
   redis_data:

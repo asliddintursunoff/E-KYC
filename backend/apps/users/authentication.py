@@ -1,15 +1,22 @@
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework_simplejwt.exceptions import InvalidToken
 from apps.users.tokens import TemporaryLoginToken
 
 class TemporaryTokenAuthentication(JWTAuthentication):
+
     def get_validated_token(self, raw_token):
         try:
             return TemporaryLoginToken(raw_token)
-        except Exception as e:
-            # raise InvalidToken(str(e))
-            return None
-        
+        except Exception:
+            pass
+
+        try:
+            return AccessToken(raw_token)
+        except Exception:
+            pass
+
+        raise InvalidToken("Invalid token")
     
 
 # authentication.py
