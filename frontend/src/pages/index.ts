@@ -1,0 +1,8 @@
+export { LandingPage } from '@/pages/LandingPage'
+export { RegisterPage } from '@/pages/RegisterPage'
+export { FaceRegisterPage } from '@/pages/FaceRegisterPage'
+export { LoginPage } from '@/pages/LoginPage'
+export { FaceVerifyPage } from '@/pages/FaceVerifyPage'
+export { ProfilePage } from '@/pages/ProfilePage'
+export { UpdateFacePage } from '@/pages/UpdateFacePage'
+export { NotFoundPage } from '@/pages/NotFoundPage'

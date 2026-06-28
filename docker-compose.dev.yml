@@ -1,4 +1,5 @@
 version: '3.8'
+
 services:
   postgres_db:
     image: pgvector/pgvector:pg17
@@ -27,21 +28,20 @@ services:
       retries: 5
     restart: always
 
- 
-
   web_backend:
-    image: ${DOCKERHUB_USERNAME}/ekyc-web-backend:${IMAGE_TAG}
+    # image: ${DOCKERHUB_USERNAME}/ekyc-web-backend:${IMAGE_TAG}
+    build: ./backend
     restart: always
     command: python manage.py runserver 0.0.0.0:8000
     container_name: web_backend
     volumes:
       - media_data:/app/media
     environment:
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
-      - DB_NAME=${DB_NAME}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=postgres_db
+      - DB_PORT=5432
+      - DB_NAME=postgres
+      - DB_USER=postgres
+      - DB_PASSWORD=password
       - REDIS_HOST=redis_db
       - REDIS_PORT=6379
     depends_on:
@@ -51,7 +51,8 @@ services:
       - "8000:8000"
 
   celery_worker:
-    image: ${DOCKERHUB_USERNAME}/ekyc-web-backend:${IMAGE_TAG}
+    # image: ${DOCKERHUB_USERNAME}/ekyc-web-backend:${IMAGE_TAG}
+    build: ./backend
     restart: always
     command: celery -A config worker --loglevel=info
     container_name: celery_worker
@@ -68,6 +69,31 @@ services:
     depends_on:
       redis_db:
         condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: http://localhost:8000
+        VITE_WS_BASE_URL: ws://localhost:8000
+        VITE_FACE_FRAME_INTERVAL: "1"
+    container_name: faceid_frontend
+    restart: always
+    ports:
+      - "5173:5173"
+    environment:
+      # IMPORTANT: these values are read by the BROWSER, not by another
+      # container. `web_backend` only resolves inside the Docker network —
+      # the browser on your host machine (or phone) can't see it at all.
+      # Use whatever address your browser can actually reach: localhost
+      # if you're on the same machine as Docker, or the host's LAN IP
+      # (e.g. http://192.168.1.50:8000) if testing from a phone/another device.
+      - VITE_API_BASE_URL=http://localhost:8000
+      - VITE_WS_BASE_URL=ws://localhost:8000
+      - VITE_FACE_FRAME_INTERVAL=1
+    depends_on:
+      - web_backend
 
 volumes:
   redis_data:
