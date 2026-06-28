@@ -65,9 +65,8 @@ services:
       - REDIS_HOST=redis_db
       - REDIS_PORT=6379
     depends_on:
-      web_backend:
-      redis_db:
-        condition: service_healthy
+      - web_backend
+      - redis_db
 
 volumes:
   redis_data:
