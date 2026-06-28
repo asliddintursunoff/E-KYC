@@ -56,27 +56,52 @@ export function FaceBoundingBoxOverlay({
       ctx.lineWidth = 2.5
       ctx.lineJoin = 'round'
 
+      // Draw a center target and a guidance line from detected face center
+      // to the ideal frame center. This helps users correct head pose and
+      // centering instead of a raw bounding square.
+      const targetX = clientWidth / 2
+      const targetY = clientHeight / 2
+
+      // subtle target circle
+      ctx.strokeStyle = 'rgba(255,255,255,0.9)'
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.arc(targetX, targetY, Math.max(28, Math.min(clientWidth, clientHeight) * 0.07), 0, Math.PI * 2)
+      ctx.stroke()
+
       faceBoxes.forEach(([x, y, w, h]) => {
         if ([x, y, w, h].some((v) => typeof v !== 'number' || Number.isNaN(v))) return
 
-        // Force a square using the longer side, centered on the original box.
-        const side = Math.max(w, h)
         const cx = x + w / 2
         const cy = y + h / 2
-        const squareX = cx - side / 2
-        const squareY = cy - side / 2
+        let drawCx = cx * scaleX
+        const drawCy = cy * scaleY
 
-        let drawX = squareX * scaleX
-        const drawY = squareY * scaleY
-        const drawSide = side * Math.max(scaleX, scaleY)
-
-        // The video itself is mirrored via CSS (selfie view), so the
-        // backend's un-mirrored coordinates must be flipped to line up.
         if (mirrored) {
-          drawX = clientWidth - drawX - drawSide
+          drawCx = clientWidth - drawCx
         }
 
-        drawCornerBracketSquare(ctx, drawX, drawY, drawSide)
+        // line from face center to target center
+        ctx.strokeStyle = TONE_COLOR[tone]
+        ctx.lineWidth = 3
+        ctx.beginPath()
+        ctx.moveTo(drawCx, drawCy)
+        ctx.lineTo(targetX, targetY)
+        ctx.stroke()
+
+        // small marker at face center
+        ctx.fillStyle = TONE_COLOR[tone]
+        ctx.beginPath()
+        ctx.arc(drawCx, drawCy, 6, 0, Math.PI * 2)
+        ctx.fill()
+
+        // optionally draw a subtle bounding dot ring to indicate size
+        const radius = Math.max(12, Math.min(w, h) * Math.max(scaleX, scaleY) * 0.5)
+        ctx.strokeStyle = 'rgba(255,255,255,0.25)'
+        ctx.lineWidth = 1.5
+        ctx.beginPath()
+        ctx.arc(drawCx, drawCy, radius, 0, Math.PI * 2)
+        ctx.stroke()
       })
     }
 
@@ -88,45 +113,4 @@ export function FaceBoundingBoxOverlay({
   return <canvas ref={canvasRef} className="pointer-events-none absolute inset-0 h-full w-full" />
 }
 
-/**
- * Draws a Face-ID-style square: corner brackets rather than a full
- * unbroken outline, matching the biometric-scanner visual language used
- * elsewhere in the camera UI.
- */
-function drawCornerBracketSquare(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  size: number
-) {
-  const cornerLength = Math.max(size * 0.18, 14)
-  const r = 10 // corner radius
-
-  ctx.beginPath()
-
-  // Top-left
-  ctx.moveTo(x, y + cornerLength)
-  ctx.lineTo(x, y + r)
-  ctx.arcTo(x, y, x + r, y, r)
-  ctx.lineTo(x + cornerLength, y)
-
-  // Top-right
-  ctx.moveTo(x + size - cornerLength, y)
-  ctx.lineTo(x + size - r, y)
-  ctx.arcTo(x + size, y, x + size, y + r, r)
-  ctx.lineTo(x + size, y + cornerLength)
-
-  // Bottom-right
-  ctx.moveTo(x + size, y + size - cornerLength)
-  ctx.lineTo(x + size, y + size - r)
-  ctx.arcTo(x + size, y + size, x + size - r, y + size, r)
-  ctx.lineTo(x + size - cornerLength, y + size)
-
-  // Bottom-left
-  ctx.moveTo(x + cornerLength, y + size)
-  ctx.lineTo(x + r, y + size)
-  ctx.arcTo(x, y + size, x, y + size - r, r)
-  ctx.lineTo(x, y + size - cornerLength)
-
-  ctx.stroke()
-}
+// legacy: corner-square helper removed — overlay now draws center guidance

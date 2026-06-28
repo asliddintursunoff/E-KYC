@@ -5,6 +5,7 @@ import { TopBar } from '@/components/layout/TopBar'
 import { CameraView } from '@/components/camera/CameraView'
 import { Button } from '@/components/ui/Button'
 import { useCameraStream } from '@/hooks/useCameraStream'
+import { useCameraChecks } from '@/hooks/useCameraChecks'
 import { useFaceVerificationSocket } from '@/hooks/useFaceVerificationSocket'
 import { useFaceFlowStore } from '@/store/faceFlowStore'
 import { useAuthStore } from '@/store/authStore'
@@ -18,6 +19,8 @@ export function FaceVerifyPage() {
   const setTokens = useAuthStore((s) => s.setTokens)
 
   const { videoRef, permission, error: cameraError } = useCameraStream()
+
+  const { isBlurry, isMoving } = useCameraChecks(videoRef)
 
   const { stage, setStage, guidanceMessage, setGuidance, faceBoxes, setFaceBoxes, reset } =
     useFaceFlowStore()
@@ -79,7 +82,19 @@ export function FaceVerifyPage() {
     if (connectionState === 'open' && stage === 'ready') {
       setStage('capturing')
     }
-  }, [connectionState, stage, setStage])
+    // give frontend camera checks priority guidance when appropriate
+    // if image is blurry or there's no recent movement, prompt the user
+    if (connectionState === 'open' && stage === 'capturing') {
+      if (isBlurry) {
+        setGuidance('not_looking_front', 'Image is blurry — bring camera closer and hold steady')
+      } else if (!isMoving) {
+        setGuidance('not_looking_front', 'Move your head slightly so we can check liveness')
+      } else {
+        // clear camera-side guidance if backend isn't signalling issues
+        if (!guidanceMessage) setGuidance(null, null)
+      }
+    }
+  }, [connectionState, stage, setStage, isBlurry, isMoving, guidanceMessage, setGuidance])
 
   const handleRetry = () => {
     closeSocket()
