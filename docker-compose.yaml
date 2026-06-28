@@ -70,11 +70,13 @@ services:
 
 
   frontend:
-  image: ${DOCKERHUB_USERNAME}/ekyc-frontend:${IMAGE_TAG}
-  container_name: faceid_frontend
-  restart: always
-  ports:
-    - "3000:5173"
+    image: ${DOCKERHUB_USERNAME}/ekyc-frontend:${IMAGE_TAG}
+    container_name: faceid_frontend
+    restart: always
+    ports:
+      - "3000:5173"
+    depends_on:
+      - celery_worker
 volumes:
   redis_data:
   media_data:
