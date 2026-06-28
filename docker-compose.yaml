@@ -15,6 +15,7 @@ services:
       retries: 5
     restart: always
 
+
   web_backend:
     image: ${DOCKERHUB_USERNAME}/ekyc-web-backend:${IMAGE_TAG}
     restart: always
