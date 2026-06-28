@@ -1,18 +1,6 @@
 version: '3.8'
-services:
-  # postgres_db:
-  #   image: pgvector/pgvector:pg17
-  #   container_name: postgres_pgvector
-  #   restart: always
-  #   environment:
-  #     POSTGRES_USER: postgres
-  #     POSTGRES_PASSWORD: password
-  #     POSTGRES_DB: postgres
-  #   ports:
-  #     - "5433:5432"
-  #   volumes:
-  #     - postgres_data_v:/var/lib/postgresql/data
 
+services:
   redis_db:
     image: redis:7.2-alpine
     container_name: redis_db
@@ -26,7 +14,6 @@ services:
       timeout: 3s
       retries: 5
     restart: always
-
 
   web_backend:
     image: ${DOCKERHUB_USERNAME}/ekyc-web-backend:${IMAGE_TAG}
@@ -68,15 +55,19 @@ services:
       - web_backend
       - redis_db
 
-
   frontend:
     image: ${DOCKERHUB_USERNAME}/ekyc-frontend:${IMAGE_TAG}
     container_name: faceid_frontend
     restart: always
     ports:
       - "3000:5173"
+    environment:
+      - VITE_API_BASE_URL=${VITE_API_BASE_URL}
+      - VITE_WS_BASE_URL=${VITE_WS_BASE_URL}
+      - VITE_FACE_FRAME_INTERVAL=${VITE_FACE_FRAME_INTERVAL}
     depends_on:
-      - celery_worker
+      - web_backend
+
 volumes:
   redis_data:
   media_data:

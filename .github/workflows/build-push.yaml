@@ -85,9 +85,14 @@ jobs:
 
             IMAGE_TAG=${{ github.sha }}
 
+            # Generate the local .env file so compose can swap the variables out
             cat > .env << EOF
             DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
             IMAGE_TAG=$IMAGE_TAG
+
+            VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}
+            VITE_WS_BASE_URL=${{ secrets.VITE_WS_BASE_URL }}
+            VITE_FACE_FRAME_INTERVAL=${{ secrets.VITE_FACE_FRAME_INTERVAL }}
 
             DB_HOST=${{ secrets.DB_HOST }}
             DB_PORT=${{ secrets.DB_PORT }}
@@ -99,14 +104,14 @@ jobs:
             REDIS_PORT=6379
             EOF
 
+            # Authentication to pull from Docker Hub
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login \
               -u "${{ secrets.DOCKERHUB_USERNAME }}" \
               --password-stdin
 
+            # Pull images, recreate containers, and clear space
             docker compose pull
-
             docker compose up -d --remove-orphans
-
             docker image prune -f
 
             docker ps
