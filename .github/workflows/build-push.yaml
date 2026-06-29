@@ -23,7 +23,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build Backend Image
+      - name: Build and Push Backend Image
         env:
           IMAGE_TAG: ${{ github.sha }}
         run: |
@@ -31,30 +31,18 @@ jobs:
             -t ${{ secrets.DOCKERHUB_USERNAME }}/ekyc-web-backend:$IMAGE_TAG \
             -f backend/Dockerfile \
             backend
-
-      - name: Push Backend Image
-        env:
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/ekyc-web-backend:$IMAGE_TAG
 
-      - name: Build Frontend Image
-        env:
+      - name: Build and Push NGINX Image
+        env: 
           IMAGE_TAG: ${{ github.sha }}
         run: |
+          # Fixed the build context path to point inside the backend folder
           docker build \
-            --build-arg VITE_API_BASE_URL="${{ secrets.VITE_API_BASE_URL }}" \
-            --build-arg VITE_WS_BASE_URL="${{ secrets.VITE_WS_BASE_URL }}" \
-            --build-arg VITE_FACE_FRAME_INTERVAL="${{ secrets.VITE_FACE_FRAME_INTERVAL }}" \
-            -t ${{ secrets.DOCKERHUB_USERNAME }}/ekyc-frontend:$IMAGE_TAG \
-            -f frontend/Dockerfile \
-            frontend
-
-      - name: Push Frontend Image
-        env:
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/ekyc-frontend:$IMAGE_TAG
+            -t ${{ secrets.DOCKERHUB_USERNAME }}/ekyc-nginx:$IMAGE_TAG \
+            -f backend/nginx/Dockerfile \
+            backend/nginx
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/ekyc-nginx:$IMAGE_TAG
 
   deploy:
     runs-on: ubuntu-latest
@@ -80,38 +68,45 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             set -e
-
             cd /home/ubuntu/ekyc
-
             IMAGE_TAG=${{ github.sha }}
 
-            # Generate the local .env file so compose can swap the variables out
+            # 1. Clean up aggressive disk space BEFORE pulling new layers
+            echo "Cleaning up disk space..."
+            docker system prune -a -f --volumes || true
+
+            # Generate local .env
             cat > .env << EOF
             DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
             IMAGE_TAG=$IMAGE_TAG
-
-            VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}
-            VITE_WS_BASE_URL=${{ secrets.VITE_WS_BASE_URL }}
-            VITE_FACE_FRAME_INTERVAL=${{ secrets.VITE_FACE_FRAME_INTERVAL }}
-
             DB_HOST=${{ secrets.DB_HOST }}
             DB_PORT=${{ secrets.DB_PORT }}
             DB_NAME=${{ secrets.DB_NAME }}
             DB_USER=${{ secrets.DB_USER }}
             DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-
             REDIS_HOST=redis_db
             REDIS_PORT=6379
             EOF
 
-            # Authentication to pull from Docker Hub
-            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login \
-              -u "${{ secrets.DOCKERHUB_USERNAME }}" \
-              --password-stdin
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
-            # Pull images, recreate containers, and clear space
+            # 2. Deploy
+            echo "Pulling images and restarting stack..."
             docker compose pull
             docker compose up -d --remove-orphans
-            docker image prune -f
 
-            docker ps
+            # 3. CRITICAL: Wait and Verify Health
+            echo "Waiting for health checks to initialize..."
+            sleep 15  # Give containers a brief moment to start up
+
+            # Check if any container is in an exited state or explicitly unhealthy
+            UNHEALTHY_COUNT=$(docker compose ps --format json | grep -E '"Status":"(unhealthy|exited)"' | wc -l || echo "0")
+            
+            if [ "$UNHEALTHY_COUNT" -gt 0 ]; then
+              echo "❌ DEPLOYMENT FAILED: One or more containers are unhealthy or crashed!"
+              docker compose ps
+              docker compose logs --tail=20
+              exit 1  # This forces GitHub Actions to mark the deployment as a failure!
+            else
+              echo "✅ DEPLOYMENT SUCCESSFUL: All containers running smoothly."
+            fi

@@ -15,14 +15,16 @@ services:
       retries: 5
     restart: always
 
-
   web_backend:
     image: ${DOCKERHUB_USERNAME}/ekyc-web-backend:${IMAGE_TAG}
     restart: always
-    command: python manage.py runserver 0.0.0.0:8000
+    command: daphne -b 0.0.0.0 -p 8000 config.asgi:application
     container_name: web_backend
+    ports:
+      - "8000:8000"
     volumes:
       - media_data:/app/media
+      - static_data:/app/staticfiles
     environment:
       - DB_HOST=${DB_HOST}
       - DB_PORT=${DB_PORT}
@@ -31,17 +33,22 @@ services:
       - DB_PASSWORD=${DB_PASSWORD}
       - REDIS_HOST=redis_db
       - REDIS_PORT=6379
+    
+    healthcheck:
+      test: ["CMD","curl", "http://localhost:8000/api/health/"]
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 60s
     depends_on:
       redis_db:
         condition: service_healthy
-    ports:
-      - "8000:8000"
 
   celery_worker:
     image: ${DOCKERHUB_USERNAME}/ekyc-web-backend:${IMAGE_TAG}
-    restart: always
-    command: celery -A config worker --loglevel=info
     container_name: celery_worker
+    restart: always
+    command: celery -A config worker --loglevel=warning --concurrency=2 --max-tasks-per-child=500
     volumes:
       - media_data:/app/media
     environment:
@@ -52,23 +59,56 @@ services:
       - DB_PASSWORD=${DB_PASSWORD}
       - REDIS_HOST=redis_db
       - REDIS_PORT=6379
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config inspect ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
     depends_on:
-      - web_backend
-      - redis_db
+      redis_db:
+        condition: service_healthy
+      web_backend:
+        condition: service_healthy
+      
 
-  frontend:
-    image: ${DOCKERHUB_USERNAME}/ekyc-frontend:${IMAGE_TAG}
-    container_name: faceid_frontend
+  nginx:
+    image: ${DOCKERHUB_USERNAME}/ekyc-nginx:${IMAGE_TAG}
+    container_name: nginx
     restart: always
     ports:
-      - "80:5173"
-    environment:
-      - VITE_API_BASE_URL=${VITE_API_BASE_URL}
-      - VITE_WS_BASE_URL=${VITE_WS_BASE_URL}
-      - VITE_FACE_FRAME_INTERVAL=${VITE_FACE_FRAME_INTERVAL}
+      - "80:80"
+    volumes:
+      - media_data:app/media
+      - static_data:app/staticfiles
+
     depends_on:
-      - web_backend
+      web_backend:
+        condition: service_healthy
+      celery_worker:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+
+  # frontend:
+  #   image: ${DOCKERHUB_USERNAME}/ekyc-frontend:${IMAGE_TAG}
+  #   container_name: faceid_frontend
+  #   restart: always
+  #   ports:
+  #     - "80:5173"
+  #   environment:
+  #     - VITE_API_BASE_URL=${VITE_API_BASE_URL}
+  #     - VITE_WS_BASE_URL=${VITE_WS_BASE_URL}
+  #     - VITE_FACE_FRAME_INTERVAL=${VITE_FACE_FRAME_INTERVAL}
+  #   depends_on:
+  #     - web_backend
 
 volumes:
   redis_data:
   media_data:
+  static_data:

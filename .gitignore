@@ -11,3 +11,13 @@ aws/
 */aws/
 awscliv2.zip
 *.pem
+
+*/staticfiles/
+*/media/
+
+*/__pycache__/
+
+# Ignore all pycache folders anywhere in the project
+**/__pycache__/
+*.py[cod]
+*$py.class
