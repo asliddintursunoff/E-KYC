@@ -81,6 +81,8 @@ services:
     volumes:
       - media_data:/app/media
       - static_data:/app/staticfiles
+      - certbot_www:/var/www/certbot
+      - certbot_certs:/etc/letsencrypt
 
     depends_on:
       web_backend:
@@ -94,21 +96,18 @@ services:
       timeout: 5s
       retries: 3
 
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - certbot_www:/var/www/certbot
+      - certbot_certs:/etc/letsencrypt
+    entrypoint: "true" 
 
-  # frontend:
-  #   image: ${DOCKERHUB_USERNAME}/ekyc-frontend:${IMAGE_TAG}
-  #   container_name: faceid_frontend
-  #   restart: always
-  #   ports:
-  #     - "80:5173"
-  #   environment:
-  #     - VITE_API_BASE_URL=${VITE_API_BASE_URL}
-  #     - VITE_WS_BASE_URL=${VITE_WS_BASE_URL}
-  #     - VITE_FACE_FRAME_INTERVAL=${VITE_FACE_FRAME_INTERVAL}
-  #   depends_on:
-  #     - web_backend
 
 volumes:
   redis_data:
   media_data:
   static_data:
+  certbot_certs:
+  certbot_www:
