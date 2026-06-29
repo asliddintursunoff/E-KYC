@@ -22,7 +22,7 @@ export function FaceVerifyPage() {
 
   const { isBlurry, isMoving } = useCameraChecks(videoRef)
 
-  const { stage, setStage, guidanceMessage, setGuidance, faceBoxes, setFaceBoxes, reset } =
+  const { stage, setStage, guidanceMessage, setGuidance, setFaceBoxes, reset } =
     useFaceFlowStore()
 
   const [socketActive, setSocketActive] = useState(true)
@@ -33,7 +33,7 @@ export function FaceVerifyPage() {
       setGuidance(null, message.message)
       setTokens(message.data.access_token, message.data.refresh_token)
       setSocketActive(false)
-      setTimeout(() => navigate('/profile'), 900)
+      navigate('/profile')
     },
     [navigate, setGuidance, setStage, setTokens]
   )
@@ -162,7 +162,7 @@ export function FaceVerifyPage() {
       : guidanceMessage
 
   return (
-    <PageShell>
+    <PageShell maxWidth="lg">
       <TopBar title="Face verification" showBack={false} />
 
       <div className="flex flex-1 flex-col">
@@ -178,8 +178,7 @@ export function FaceVerifyPage() {
           scanState={scanState}
           guidanceMessage={displayMessage}
           guidanceTone={tone}
-          faceBoxes={faceBoxes}
-          useFaceBoxes
+          showScanFrame={false}
         />
 
         <div className="mt-6 pb-4">

@@ -69,9 +69,12 @@ export function pollJobUntilDone(options: PollJobOptions): Promise<JobSuccessRes
           return
         }
 
-        if (response.status === 'FAILURE' || 'error' in response) {
+        if (response.status === 'FAILURE') {
           cleanup()
-          const errorMessage = 'error' in response ? response.error : 'Verification failed.'
+          const errorMessage =
+            'error' in response && response.error && response.error !== 'None' && response.error !== 'null'
+              ? response.error
+              : 'Verification failed.'
           reject(new JobFailureError(errorMessage))
           return
         }

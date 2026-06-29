@@ -1,8 +1,6 @@
 import type { RefObject } from 'react'
 import { ScanFrame } from '@/components/camera/ScanFrame'
-import { FaceBoundingBoxOverlay } from '@/components/camera/FaceBoundingBoxOverlay'
 import { GuidanceBanner } from '@/components/camera/GuidanceBanner'
-import type { FaceBox } from '@/types/websocket'
 
 type ScanState = 'idle' | 'scanning' | 'success' | 'error'
 
@@ -11,15 +9,8 @@ interface CameraViewProps {
   scanState: ScanState
   guidanceMessage: string | null
   guidanceTone?: 'neutral' | 'error' | 'success'
-  faceBoxes?: FaceBox[]
-  /**
-   * When true, draws a live square around the backend-reported face
-   * location instead of the static circular scan frame. Use this for the
-   * WebSocket verification flow, where the backend continuously reports
-   * face_location. The registration/re-enrollment flow (a single still
-   * capture, no live tracking stream) keeps the circular scan frame.
-   */
-  useFaceBoxes?: boolean
+  /** When false, don't render the circular scan frame (used for live WS verification) */
+  showScanFrame?: boolean
 }
 
 export function CameraView({
@@ -27,23 +18,18 @@ export function CameraView({
   scanState,
   guidanceMessage,
   guidanceTone = 'neutral',
-  faceBoxes = [],
-  useFaceBoxes = false,
+  showScanFrame = true,
 }: CameraViewProps) {
   return (
-    <div className="relative aspect-[3/4] w-full overflow-hidden rounded-4xl bg-base-surface">
+    <div className="relative w-full mx-auto overflow-hidden rounded-4xl bg-base-surface h-[420px] sm:h-[480px] lg:h-[520px] max-w-[640px] sm:max-w-[760px] lg:max-w-[1000px]">
       <video
         ref={videoRef}
         autoPlay
         playsInline
         muted
-        className="h-full w-full -scale-x-100 object-cover"
+        className="w-full h-full -scale-x-100 object-cover"
       />
-      {useFaceBoxes ? (
-        <FaceBoundingBoxOverlay videoRef={videoRef} faceBoxes={faceBoxes} tone={guidanceTone} />
-      ) : (
-        <ScanFrame state={scanState} />
-      )}
+      {showScanFrame && <ScanFrame state={scanState} />}
       <GuidanceBanner message={guidanceMessage} tone={guidanceTone} />
 
       {/* Vignette to keep focus on the scan area */}

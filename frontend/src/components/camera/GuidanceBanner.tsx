@@ -4,20 +4,20 @@ interface GuidanceBannerProps {
 }
 
 const toneClasses = {
-  neutral: 'bg-white/10 text-ink',
-  error: 'bg-danger/15 text-danger',
-  success: 'bg-success/15 text-success',
+  neutral: 'bg-black/75 text-white border-white/20',
+  error: 'bg-red-600/85 text-white border-red-700',
+  success: 'bg-green-600/85 text-white border-green-700',
 }
 
 export function GuidanceBanner({ message, tone = 'neutral' }: GuidanceBannerProps) {
   if (!message) return null
 
   return (
-    <div className="absolute inset-x-0 bottom-28 flex justify-center px-6">
+    <div className="absolute inset-x-0 bottom-8 flex justify-center px-6 z-50">
       <div
         className={`
-          animate-fade-in rounded-full border border-white/10 px-5 py-2.5
-          text-center text-[14px] font-medium backdrop-blur-md
+          animate-fade-in rounded-full border px-6 py-3
+          text-center text-[15px] font-semibold backdrop-blur-md shadow-lg
           ${toneClasses[tone]}
         `}
       >

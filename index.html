@@ -284,8 +284,6 @@
 
   // ---------- DOM refs ----------
   const video = document.getElementById('video');
-  const boxesCanvas = document.getElementById('boxes');
-  const boxesCtx = boxesCanvas.getContext('2d');
   const videoPlaceholder = document.getElementById('videoPlaceholder');
   const statusBanner = document.getElementById('statusBanner');
   const startBtn = document.getElementById('startBtn');
@@ -302,7 +300,11 @@
   const profileGrid = document.getElementById('profileGrid');
 
   // ---------- Config ----------
-  const SEND_INTERVAL_MS = 700;
+  // Network send tuning: cap outgoing frames and downscale to reduce backend load.
+  const MAX_SEND_FPS = 1; // send one frame per second to reduce backend load
+  const SEND_SCALE = 0.5; // downscale factor for the bytes we send
+  const JPEG_QUALITY_SEND = 0.6; // lower quality for smaller payloads
+  const SEND_INTERVAL_MS = 1; // kept for backward compatibility with rAF sender
   const JPEG_QUALITY = 0.85;
 
   // ---------- State ----------
@@ -394,6 +396,12 @@
     captureCanvas.height = video.videoHeight || 960;
     captureCtx = captureCanvas.getContext('2d');
 
+    // canvas used to produce smaller images for sending to the server
+    window.sendCanvas = document.createElement('canvas');
+    sendCanvas.width = Math.max(160, Math.round(captureCanvas.width * SEND_SCALE));
+    sendCanvas.height = Math.max(120, Math.round(captureCanvas.height * SEND_SCALE));
+    window.sendCtx = sendCanvas.getContext('2d');
+
     log(`Camera started (${captureCanvas.width}x${captureCanvas.height})`, 'ok');
   }
 
@@ -406,18 +414,16 @@
     clearBoxes();
   }
 
-  // canvas overlay must match the *displayed* size of the video element,
-  // since CSS object-fit: cover means displayed size != native video resolution
+  // boxes overlay is not used in this minimal sender mode.
   function syncCanvasSize() {
-    const rect = video.getBoundingClientRect();
-    boxesCanvas.width = rect.width;
-    boxesCanvas.height = rect.height;
+    // no-op
   }
   window.addEventListener('resize', syncCanvasSize);
 
   // ============================================================
   // Frame capture + send (binary, raw JPEG bytes — no base64/JSON)
   // ============================================================
+  // Capture a high-resolution local frame (used for local processing / preview)
   function captureFrameBlob() {
     captureCtx.drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height);
     return new Promise((resolve) => {
@@ -425,10 +431,26 @@
     });
   }
 
+  // Capture a downscaled frame optimized for sending to the backend.
+  function captureSendBlob() {
+    // draw into the smaller sendCanvas to reduce bytes and encode cost
+    sendCtx.drawImage(video, 0, 0, sendCanvas.width, sendCanvas.height);
+    return new Promise((resolve) => {
+      sendCanvas.toBlob((blob) => resolve(blob), 'image/jpeg', JPEG_QUALITY_SEND);
+    });
+  }
+
+  let _lastSendTs = 0;
+  const _minSendInterval = 1000 / MAX_SEND_FPS;
+
   async function sendFrame() {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    const now = Date.now();
+    if (now - _lastSendTs < _minSendInterval) return; // throttle sends
+    _lastSendTs = now;
+
     try {
-      const blob = await captureFrameBlob();
+      const blob = await captureSendBlob();
       const buffer = await blob.arrayBuffer();
       ws.send(buffer);
       bumpFrameStats(buffer.byteLength);
@@ -439,80 +461,22 @@
   }
 
   function startSendingFrames() {
-    sendTimer = setInterval(sendFrame, SEND_INTERVAL_MS);
+    const scheduleNextSend = async () => {
+      await sendFrame();
+      sendTimer = requestAnimationFrame(scheduleNextSend);
+    };
+    scheduleNextSend();
   }
 
   function stopSendingFrames() {
     if (sendTimer) {
-      clearInterval(sendTimer);
+      cancelAnimationFrame(sendTimer);
       sendTimer = null;
     }
   }
 
-  // ============================================================
-  // Face box rendering
-  //
-  // Server sends coords in ORIGINAL (unmirrored) frame space, sized to the
-  // frame we sent (captureCanvas.width x captureCanvas.height).
-  // The video element is mirrored via CSS scaleX(-1) and displayed at a
-  // possibly different size (object-fit: cover), so each box must be:
-  //   1. scaled from capture-frame space -> displayed-video space
-  //   2. mirrored horizontally to match the visual flip
-  // ============================================================
   function clearBoxes() {
-    boxesCtx.clearRect(0, 0, boxesCanvas.width, boxesCanvas.height);
-  }
-
-  function drawFaceBoxes(faceLocation) {
-    clearBoxes();
-    if (!faceLocation || !captureCanvas) return;
-
-    // normalize to an array of boxes: either [x1,y1,x2,y2] or [[x1,y1,x2,y2], ...]
-    const isSingleBox = typeof faceLocation[0] === 'number';
-    const boxes = isSingleBox ? [faceLocation] : faceLocation;
-    if (!boxes.length) return;
-
-    // object-fit: cover scaling math: the video's *native* resolution is
-    // cropped to fill the displayed box, so we compute the cover scale/offset
-    const displayW = boxesCanvas.width;
-    const displayH = boxesCanvas.height;
-    const nativeW = captureCanvas.width;
-    const nativeH = captureCanvas.height;
-
-    const scale = Math.max(displayW / nativeW, displayH / nativeH);
-    const renderedW = nativeW * scale;
-    const renderedH = nativeH * scale;
-    const offsetX = (displayW - renderedW) / 2;
-    const offsetY = (displayH - renderedH) / 2;
-
-    boxesCtx.lineWidth = 3;
-    boxesCtx.strokeStyle = '#22c55e';
-    boxesCtx.shadowColor = 'rgba(34,197,94,0.6)';
-    boxesCtx.shadowBlur = 6;
-    boxesCtx.font = '600 13px system-ui, sans-serif';
-    boxesCtx.fillStyle = '#22c55e';
-
-    boxes.forEach((box, i) => {
-      let [x1, y1, x2, y2] = box;
-
-      // scale from native capture space -> displayed (cover) space
-      x1 = x1 * scale + offsetX;
-      x2 = x2 * scale + offsetX;
-      y1 = y1 * scale + offsetY;
-      y2 = y2 * scale + offsetY;
-
-      // mirror horizontally to match the CSS scaleX(-1) on the video,
-      // so the box lines up with what the user actually sees
-      const mx1 = displayW - x2;
-      const mx2 = displayW - x1;
-
-      boxesCtx.strokeRect(mx1, y1, mx2 - mx1, y2 - y1);
-      if (boxes.length > 1) {
-        boxesCtx.shadowBlur = 0;
-        boxesCtx.fillText(`#${i + 1}`, mx1 + 4, y1 - 6 > 10 ? y1 - 6 : y1 + 14);
-        boxesCtx.shadowBlur = 6;
-      }
-    });
+    // no drawing required for this test client
   }
 
   // ============================================================
@@ -607,7 +571,6 @@
           type === 'success' ? 'ok' : (type === 'error' ? 'err' : 'info'));
 
       if (type === 'success') {
-        clearBoxes();
         setBanner(message || 'Identity verified', 'success', code || 'SUCCESS');
         stopSendingFrames();
         isVerifying = false;
@@ -629,14 +592,6 @@
         const text = message || 'Unknown error';
         const errCode = code || 'undefined';
         setBanner(text, 'error', errCode);
-
-        // draw / clear face boxes based on what this specific error tells us
-        if (data && data.face_location) {
-          drawFaceBoxes(data.face_location);
-        } else if (errCode === 'no_face' || (data && Object.keys(data).length === 0)) {
-          clearBoxes();
-        }
-        // non-fatal — keep streaming frames, server decides if/when to close
         return;
       }
 

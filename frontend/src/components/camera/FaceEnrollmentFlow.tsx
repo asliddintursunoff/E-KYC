@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useCameraStream } from '@/hooks/useCameraStream'
 import { useFrameCapture } from '@/hooks/useFrameCapture'
 import { CameraView } from '@/components/camera/CameraView'
@@ -24,17 +24,35 @@ export function FaceEnrollmentFlow({
   title,
   subtitle,
 }: FaceEnrollmentFlowProps) {
-  const { videoRef, permission, error: cameraError, start: restartCamera } = useCameraStream()
+  const { videoRef, permission, error: cameraError } = useCameraStream()
   const { captureBlob } = useFrameCapture(videoRef)
 
   const [stage, setStage] = useState<EnrollmentStage>('ready')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const errorTimeoutRef = useRef<number | null>(null)
 
-  const restart = useCallback(() => {
-    setErrorMessage(null)
-    setStage('ready')
-    restartCamera()
-  }, [restartCamera])
+  useEffect(() => {
+    if (!errorMessage) {
+      return
+    }
+
+    if (errorTimeoutRef.current !== null) {
+      window.clearTimeout(errorTimeoutRef.current)
+    }
+
+    errorTimeoutRef.current = window.setTimeout(() => {
+      setErrorMessage(null)
+      setStage('ready')
+      errorTimeoutRef.current = null
+    }, 10000)
+
+    return () => {
+      if (errorTimeoutRef.current !== null) {
+        window.clearTimeout(errorTimeoutRef.current)
+        errorTimeoutRef.current = null
+      }
+    }
+  }, [errorMessage])
 
   const handleCapture = useCallback(async () => {
     setStage('capturing')
@@ -98,20 +116,14 @@ export function FaceEnrollmentFlow({
       />
 
       <div className="mt-6 flex flex-col gap-3 pb-4">
-        {stage === 'error' ? (
-          <Button fullWidth onClick={restart}>
-            Try again
-          </Button>
-        ) : (
-          <Button
-            fullWidth
-            onClick={handleCapture}
-            loading={stage === 'capturing' || stage === 'uploading' || stage === 'processing'}
-            disabled={permission !== 'granted'}
-          >
-            {stage === 'processing' ? 'Verifying…' : 'Capture photo'}
-          </Button>
-        )}
+        <Button
+          fullWidth
+          onClick={handleCapture}
+          loading={stage === 'capturing' || stage === 'uploading' || stage === 'processing'}
+          disabled={permission !== 'granted'}
+        >
+          {stage === 'processing' ? 'Verifying…' : 'Capture photo'}
+        </Button>
       </div>
     </div>
   )

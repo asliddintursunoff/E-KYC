@@ -25,7 +25,7 @@ const RAW_INTERVAL = readConfig('VITE_FACE_FRAME_INTERVAL') ?? '1'
 function parseFrameInterval(raw: string): FrameInterval {
   if (raw === 'ALL_TIME') return 'ALL_TIME'
   const parsed = Number(raw)
-  if (parsed === 1 || parsed === 0.5 || parsed === 0.25) return parsed
+  if (!Number.isNaN(parsed) && parsed > 0) return parsed
   console.warn(
     `[env] Invalid VITE_FACE_FRAME_INTERVAL "${raw}", falling back to 1 second.`
   )

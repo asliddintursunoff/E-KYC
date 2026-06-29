@@ -52,56 +52,33 @@ export function FaceBoundingBoxOverlay({
       const scaleX = clientWidth / videoWidth
       const scaleY = clientHeight / videoHeight
 
-      ctx.strokeStyle = TONE_COLOR[tone]
-      ctx.lineWidth = 2.5
-      ctx.lineJoin = 'round'
-
-      // Draw a center target and a guidance line from detected face center
-      // to the ideal frame center. This helps users correct head pose and
-      // centering instead of a raw bounding square.
-      const targetX = clientWidth / 2
-      const targetY = clientHeight / 2
-
-      // subtle target circle
-      ctx.strokeStyle = 'rgba(255,255,255,0.9)'
-      ctx.lineWidth = 2
-      ctx.beginPath()
-      ctx.arc(targetX, targetY, Math.max(28, Math.min(clientWidth, clientHeight) * 0.07), 0, Math.PI * 2)
-      ctx.stroke()
-
+      // Draw proper Face ID-style bounding boxes (not circles or guidance lines)
       faceBoxes.forEach(([x, y, w, h]) => {
         if ([x, y, w, h].some((v) => typeof v !== 'number' || Number.isNaN(v))) return
 
-        const cx = x + w / 2
-        const cy = y + h / 2
-        let drawCx = cx * scaleX
-        const drawCy = cy * scaleY
+        // x, y, w, h are video coordinates from parseFaceBoxes (bbox from InsightFace)
+        // scale them to match the rendered canvas size
+        let boxX = x * scaleX
+        let boxY = y * scaleY
+        const boxW = w * scaleX
+        const boxH = h * scaleY
 
+        // mirror horizontally for selfie view (video is already flipped via CSS)
         if (mirrored) {
-          drawCx = clientWidth - drawCx
+          boxX = clientWidth - boxX - boxW
         }
 
-        // line from face center to target center
+        // draw main rectangle border like iPhone Face ID / Android BiometricPrompt
+        // reduce height slightly for better proportions (use ~85% of detected height)
+        const adjustedH = boxH * 0.85
+        const adjustedY = boxY + (boxH - adjustedH) * 0.5 // center vertically
         ctx.strokeStyle = TONE_COLOR[tone]
         ctx.lineWidth = 3
-        ctx.beginPath()
-        ctx.moveTo(drawCx, drawCy)
-        ctx.lineTo(targetX, targetY)
-        ctx.stroke()
+        ctx.strokeRect(boxX, adjustedY, boxW, adjustedH)
 
-        // small marker at face center
-        ctx.fillStyle = TONE_COLOR[tone]
-        ctx.beginPath()
-        ctx.arc(drawCx, drawCy, 6, 0, Math.PI * 2)
-        ctx.fill()
-
-        // optionally draw a subtle bounding dot ring to indicate size
-        const radius = Math.max(12, Math.min(w, h) * Math.max(scaleX, scaleY) * 0.5)
-        ctx.strokeStyle = 'rgba(255,255,255,0.25)'
-        ctx.lineWidth = 1.5
-        ctx.beginPath()
-        ctx.arc(drawCx, drawCy, radius, 0, Math.PI * 2)
-        ctx.stroke()
+        // add corner brackets for visual polish
+        const cornerLen = Math.max(12, Math.min(boxW, adjustedH) * 0.15)
+        drawCornerBrackets(ctx, boxX, adjustedY, boxW, adjustedH, cornerLen, TONE_COLOR[tone])
       })
     }
 
@@ -113,4 +90,45 @@ export function FaceBoundingBoxOverlay({
   return <canvas ref={canvasRef} className="pointer-events-none absolute inset-0 h-full w-full" />
 }
 
-// legacy: corner-square helper removed — overlay now draws center guidance
+/**
+ * Draws corner brackets for a bounding box — thick visible corners
+ * like Face ID / Android biometric UI.
+ */
+function drawCornerBrackets(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  cornerLen: number,
+  color: string
+) {
+  ctx.strokeStyle = color
+  ctx.lineWidth = 3
+  ctx.lineJoin = 'round'
+  ctx.lineCap = 'round'
+
+  ctx.beginPath()
+
+  // Top-left
+  ctx.moveTo(x, y + cornerLen)
+  ctx.lineTo(x, y)
+  ctx.lineTo(x + cornerLen, y)
+
+  // Top-right
+  ctx.moveTo(x + w - cornerLen, y)
+  ctx.lineTo(x + w, y)
+  ctx.lineTo(x + w, y + cornerLen)
+
+  // Bottom-right
+  ctx.moveTo(x + w, y + h - cornerLen)
+  ctx.lineTo(x + w, y + h)
+  ctx.lineTo(x + w - cornerLen, y + h)
+
+  // Bottom-left
+  ctx.moveTo(x + cornerLen, y + h)
+  ctx.lineTo(x, y + h)
+  ctx.lineTo(x, y + h - cornerLen)
+
+  ctx.stroke()
+}

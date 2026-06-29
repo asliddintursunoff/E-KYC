@@ -49,4 +49,4 @@ export interface WSTrackingMessage {
 
 export type WSMessage = WSSuccessMessage | WSErrorMessage | WSTrackingMessage
 
-export type FrameInterval = 1 | 0.5 | 0.25 | 'ALL_TIME'
+export type FrameInterval = number | 'ALL_TIME'

@@ -67,13 +67,16 @@ class FaceVerificationService:
         
 
     @staticmethod
-    def register_user_selfie(image,user_id):
+    def register_user_selfie(image,user):
         model = FaceVerificationService.get_model()
         try:
             ml_result = model.identify_user(image)
+            print(ml_result)
             embedding = ml_result["embedding"]
-            User.objects.filter(id = user_id).update(embedding = embedding,verified = True)
-
+            user.embedding = embedding
+            user.verified = True
+            user.save()
+            return user
          
         except NotFrontLooking as e:
             raise NotFrontLookingException()

@@ -26,16 +26,12 @@ interface UseFaceVerificationSocketOptions {
   onTracking?: (message: WSMessage) => void
 }
 
-function intervalToMs(interval: typeof env.frameInterval): number {
-  if (interval === 'ALL_TIME') return 0
-  return interval * 1000
-}
+const SEND_INTERVAL_MS = 1000
 
 /**
  * Connects to ws://.../ws/verification/?token=... and streams JPEG frames
- * from the given video element at the interval configured via
- * VITE_FACE_FRAME_INTERVAL. Parses incoming success/error messages and
- * forwards them to the caller.
+ * from the given video element at a fixed 1-second interval. Parses
+ * incoming success/error messages and forwards them to the caller.
  */
 export function useFaceVerificationSocket(options: UseFaceVerificationSocketOptions) {
   const { token, videoRef, active, onSuccess, onError, onTracking } = options
@@ -43,7 +39,6 @@ export function useFaceVerificationSocket(options: UseFaceVerificationSocketOpti
   const [connectionState, setConnectionState] = useState<WSConnectionState>('idle')
   const socketRef = useRef<WebSocket | null>(null)
   const frameTimerRef = useRef<number | null>(null)
-  const rafRef = useRef<number | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
 
   const sendFrame = useCallback(() => {
@@ -84,26 +79,11 @@ export function useFaceVerificationSocket(options: UseFaceVerificationSocketOpti
       window.clearInterval(frameTimerRef.current)
       frameTimerRef.current = null
     }
-    if (rafRef.current !== null) {
-      window.cancelAnimationFrame(rafRef.current)
-      rafRef.current = null
-    }
   }, [])
 
   const startStreaming = useCallback(() => {
     stopStreaming()
-    const ms = intervalToMs(env.frameInterval)
-
-    if (ms === 0) {
-      // ALL_TIME: stream continuously via requestAnimationFrame.
-      const loop = () => {
-        sendFrame()
-        rafRef.current = window.requestAnimationFrame(loop)
-      }
-      rafRef.current = window.requestAnimationFrame(loop)
-    } else {
-      frameTimerRef.current = window.setInterval(sendFrame, ms)
-    }
+    frameTimerRef.current = window.setInterval(sendFrame, SEND_INTERVAL_MS)
   }, [sendFrame, stopStreaming])
 
   useEffect(() => {
@@ -122,10 +102,13 @@ export function useFaceVerificationSocket(options: UseFaceVerificationSocketOpti
       startStreaming()
     }
 
+    let successReceived = false
+
     socket.onmessage = (event) => {
       try {
         const parsed: WSMessage = JSON.parse(event.data)
         if (parsed.type === 'success') {
+          successReceived = true
           stopStreaming()
           onSuccess(parsed)
         } else if (parsed.type === 'error') {
@@ -145,11 +128,16 @@ export function useFaceVerificationSocket(options: UseFaceVerificationSocketOpti
 
     socket.onclose = (event) => {
       stopStreaming()
+      // If success was already received, don't override with connection error on close.
+      if (successReceived) {
+        return
+      }
       // Common convention: 4401/4403 reserved for auth failures by this app's
-      // backend; treat any abnormal non-1000 close as a connection problem.
+      // backend; 4000 is success close (also ignore); treat any abnormal
+      // non-1000/4000 close as a connection problem.
       if (event.code === 4401 || event.code === 4403 || event.code === 1008) {
         setConnectionState('auth_error')
-      } else if (event.code !== 1000) {
+      } else if (event.code !== 1000 && event.code !== 4000) {
         setConnectionState('connection_error')
       } else {
         setConnectionState('closed')
