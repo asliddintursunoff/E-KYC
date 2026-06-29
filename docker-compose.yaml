@@ -79,8 +79,8 @@ services:
     ports:
       - "80:80"
     volumes:
-      - media_data:app/media
-      - static_data:app/staticfiles
+      - media_data:/app/media
+      - static_data:/app/staticfiles
 
     depends_on:
       web_backend:
