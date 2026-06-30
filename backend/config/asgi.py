@@ -26,6 +26,10 @@ application = ProtocolTypeRouter({
     'websocket':AllowedHostsOriginValidator(
         UserAuthenticateMiddleware(
             URLRouter(websocket_urlpatterns)
-        )
+        ),
+        [
+            "https://my-face-info.com",
+            "https://www.my-face-info.com"
+        ]
     )
 })
