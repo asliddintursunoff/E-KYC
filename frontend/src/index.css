@@ -11,14 +11,13 @@
   body,
   #root {
     height: 100%;
-    /* Prevent the entire app from scrolling or being moved */
-    overflow: hidden;
+    /* Allow the app to scroll on small screens so buttons remain reachable */
   }
 
   body {
     margin: 0;
     -webkit-tap-highlight-color: transparent;
-    overscroll-behavior-y: none;
+    overscroll-behavior-y: auto;
     touch-action: pan-y;
   }
 

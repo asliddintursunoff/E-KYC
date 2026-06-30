@@ -1,33 +1,103 @@
 from datetime import timedelta
 from pathlib import Path
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
-
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-@6c_p-5t7tc)_v4r5my&rve6q5_hcv+zk5f^m1@+(q=@1ua%yq'
+SECRET_KEY = os.getenv('SECRET_KEY')
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-CSRF_TRUSTED_ORIGINS = [
-    "https://api.my-face-info.uz",
-    "https://my-face-info.uz",
-]
-ALLOWED_HOSTS = ["*"]
+import os
 
-CORS_ALLOW_ALL_ORIGINS = True
+# ==========================================
+# 1. ENVIROMENT & DEBUG CONFIGURATION
+# ==========================================
+# .env fayldan DEBUG qiymatini o'qiymiz. os.getenv har doim string qaytargani uchun 
+# uni haqiqiy Boolean (True/False) holatiga xavfsiz o'tkazib olamiz.
+DEBUG = os.getenv('DEBUG', 'True').lower() in ('true', '1', 't')
+
+
+# ==========================================
+# 2. ALLOWED_HOSTS (Eshikdagi Qorovul)
+# ==========================================
+# Django serveringiz aynan qaysi domen nomidan kelayotgan so'rovlarni qabul qilishini belgilaydi.
+# HTTP Host header xurujlaridan himoya qilish uchun faqat backend domenini yozamiz.
+ALLOWED_HOSTS = ["api.my-face-info.uz"]
+
+
+# ==========================================
+# 3. CORS CONFIGURATION (Frontend bilan aloqa)
+# ==========================================
+# CORS_ALLOW_ALL_ORIGINS: Hamma saytga ruxsat berishni o'chiramiz (Xavfsizlik uchun).
+# CORS_ALLOW_CREDENTIALS: Frontend va Backend alohida turganda Cookie va Sessionlar o'tishi uchun ruxsat beradi.
+# CORS_ALLOWED_ORIGINS: Faqat biz ishonadigan va ruxsat berilgan frontend domenlari ro'yxati (Protokol bilan!).
+CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
-from corsheaders.defaults import default_headers
-CORS_ALLOW_HEADERS = list(default_headers) + [
-    'content-type',
-    'authorization',
-    'x-csrftoken',
+
+CORS_ALLOWED_ORIGINS = [
+    'https://my-face-info.uz',
+    'https://www.my-face-info.uz',
 ]
-# Application definition
+
+
+# ==========================================
+# 4. LOCAL DEVELOPMENT EXTRA CONFIG (Lokal muhit)
+# ==========================================
+# Agar loyiha lokal kompyuterda ishlayotgan bo'lsa (DEBUG=True), dasturchi qiynalmasligi uchun
+# localhost manzillarini va frontend portlarini avtomatik ruxsat etilganlar ro'yxatiga qo'shamiz.
+if DEBUG:
+    ALLOWED_HOSTS += ["localhost", "127.0.0.1"]
+    CORS_ALLOWED_ORIGINS += [
+        "http://localhost:3000",  # React
+        "http://localhost:5173",  # Vite
+    ]
+
+
+# ==========================================
+# 5. CSRF TRUSTED ORIGINS (Ishonchli Manbalar)
+# ==========================================
+# Django 4.0+ versiyalaridan boshlab, xavfsiz (POST/PUT) so'rovlar yuboradigan frontend
+# manzillarini bu yerda aniq ko'rsatish majburiy. Bo'lmasa CSRF tekshiruvi o'tmaydi.
+CSRF_TRUSTED_ORIGINS = [
+    'https://my-face-info.uz',
+    'https://www.my-face-info.uz',
+]
+
+
+# ==========================================
+# 6. DEFAULT COOKIE SECURITY (Boshlang'ich holat)
+# ==========================================
+# Lokal kompyuterda (HTTP muhitida) muammosiz ishlash va test qilish uchun 
+# cookielarning faqat HTTPSda ishlash majburiyatini default holatda o'chirib turamiz.
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
+
+
+# ==========================================
+# 7. PRODUCTION SECURITY SETTINGS (Jonli server xavfsizligi)
+# ==========================================
+# Loyiha real serverga yuklanganda (DEBUG=False bo'lganda) ishga tushadigan qattiq xavfsizlik filtri.
+if not DEBUG:
+    # Cookielar faqat va faqat HTTPS (shifrlangan) tarmoq orqali uzatilishini majburlaydi.
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    
+    # Nginx yoki AWS Load Balancer orqasida turganda Django HTTPS so'rovlarini to'g'ri tanib olishi uchun.
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    
+    # Har qanday HTTP so'rovni avtomatik ravishda xavfsiz HTTPSga yo'naltiradi (Redirect).
+    SECURE_SSL_REDIRECT = True
+    
+    # Cookie fayllari subdomenlar (api. va www.) o'rtasida o'zaro o'qilishi uchun umumiy asosiy domenni belgilaydi.
+    SESSION_COOKIE_DOMAIN = '.my-face-info.uz'
+    CSRF_COOKIE_DOMAIN = '.my-face-info.uz'
+    
+    # Saytlararo (CSRF) hujumlardan himoya qilish uchun eng optimal va zamonaviy cookie filtri rejimi.
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    CSRF_COOKIE_SAMESITE = 'Lax'
 
 INSTALLED_APPS = [
     'daphne',
@@ -79,9 +149,7 @@ ASGI_APPLICATION = 'config.asgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-import os
-from dotenv import load_dotenv
-load_dotenv()
+
 
 DATABASES = {
     'default': {
@@ -94,7 +162,7 @@ DATABASES = {
     }
 }
 
-print("hi")
+
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
@@ -131,9 +199,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
-STATIC_ROOT = BASE_DIR/'staticfiles'
+STATIC_ROOT = BASE_DIR /'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
 
 
 AUTH_USER_MODEL='users.User'
@@ -151,13 +220,14 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_THROTTLE_RATES': {
         'anon': '20/minute',
-        'user': '30/minute',
+        'user': '100/minute',
+        'image_registration': '3/minute'
     }
 }
 
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=10),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
 }
 SPECTACULAR_SETTINGS = {
@@ -179,19 +249,10 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = "UTC"
-
-
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
 
-# SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-# SECURE_SSL_REDIRECT = True
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
 
-if DEBUG == True:
-    SESSION_COOKIE_SECURE = False
-    CSRF_COOKIE_SECURE = False
 
 
 # it should be uncomment when nginx puts a limit for size of the incoming payload

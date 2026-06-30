@@ -181,7 +181,7 @@ export function FaceVerifyPage() {
           showScanFrame={false}
         />
 
-        <div className="mt-4 flex flex-col gap-3 pb-4">
+        <div className="mt-4 flex flex-col gap-3 pb-6">
           <Button fullWidth variant="ghost" onClick={handleReturnToLogin}>
             Cancel
           </Button>

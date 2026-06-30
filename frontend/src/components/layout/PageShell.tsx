@@ -12,7 +12,10 @@ export function PageShell({ children, maxWidth = 'sm' }: PageShellProps) {
 
   return (
     <div className="flex min-h-screen w-full flex-col items-center bg-base px-5 py-10">
-      <div className={`flex w-full flex-1 flex-col ${maxClass}`}>
+      <div
+        className={`flex w-full flex-1 flex-col ${maxClass} overflow-auto`}
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
         {children}
       </div>
     </div>

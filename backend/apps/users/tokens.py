@@ -3,4 +3,4 @@ from datetime import timedelta
 
 class TemporaryLoginToken(Token):
     token_type = 'temp'
-    lifetime = timedelta(minutes=60)
+    lifetime = timedelta(minutes=2)

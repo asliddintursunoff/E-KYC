@@ -27,7 +27,7 @@ export function LandingPage() {
         </p>
       </div>
 
-      <div className="flex flex-col gap-3 pb-4">
+      <div className="flex flex-col gap-3 pb-6">
         <Button fullWidth onClick={() => navigate('/register')}>
           Create account
         </Button>
