@@ -5,7 +5,6 @@ import { TopBar } from '@/components/layout/TopBar'
 import { CameraView } from '@/components/camera/CameraView'
 import { Button } from '@/components/ui/Button'
 import { useCameraStream } from '@/hooks/useCameraStream'
-import { useCameraChecks } from '@/hooks/useCameraChecks'
 import { useFaceVerificationSocket } from '@/hooks/useFaceVerificationSocket'
 import { useFaceFlowStore } from '@/store/faceFlowStore'
 import { useAuthStore } from '@/store/authStore'
@@ -20,9 +19,7 @@ export function FaceVerifyPage() {
 
   const { videoRef, permission, error: cameraError } = useCameraStream()
 
-  const { isBlurry, isMoving } = useCameraChecks(videoRef)
-
-  const { stage, setStage, guidanceMessage, setGuidance, setFaceBoxes, reset } =
+  const { stage, setStage, guidanceMessage, setGuidance, setFaceBoxes, reset, faceBoxes } =
     useFaceFlowStore()
 
   const [socketActive, setSocketActive] = useState(true)
@@ -72,6 +69,8 @@ export function FaceVerifyPage() {
     onTracking: handleTracking,
   })
 
+  const scanState = stage === 'success' ? 'success' : stage === 'error' ? 'error' : 'scanning'
+
   useEffect(() => {
     setStage('ready')
     return () => reset()
@@ -82,19 +81,15 @@ export function FaceVerifyPage() {
     if (connectionState === 'open' && stage === 'ready') {
       setStage('capturing')
     }
-    // give frontend camera checks priority guidance when appropriate
-    // if image is blurry or there's no recent movement, prompt the user
+
     if (connectionState === 'open' && stage === 'capturing') {
-      if (isBlurry) {
-        setGuidance('not_looking_front', 'Image is blurry — bring camera closer and hold steady')
-      } else if (!isMoving) {
-        setGuidance('not_looking_front', 'Move your head slightly so we can check liveness')
-      } else {
-        // clear camera-side guidance if backend isn't signalling issues
-        if (!guidanceMessage) setGuidance(null, null)
+      if (faceBoxes.length === 0) {
+        setGuidance(null, 'Move your face into view')
+      } else if (!guidanceMessage) {
+        setGuidance(null, 'Keep your face centered')
       }
     }
-  }, [connectionState, stage, setStage, isBlurry, isMoving, guidanceMessage, setGuidance])
+  }, [connectionState, stage, setStage, faceBoxes, guidanceMessage, setGuidance])
 
   const handleRetry = () => {
     closeSocket()
@@ -150,9 +145,6 @@ export function FaceVerifyPage() {
       </PageShell>
     )
   }
-
-  const scanState =
-    stage === 'success' ? 'success' : stage === 'error' ? 'error' : 'scanning'
 
   const tone = stage === 'error' ? 'error' : stage === 'success' ? 'success' : 'neutral'
 

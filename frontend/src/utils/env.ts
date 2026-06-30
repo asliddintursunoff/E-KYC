@@ -20,7 +20,7 @@ function readConfig(key: 'VITE_API_BASE_URL' | 'VITE_WS_BASE_URL' | 'VITE_FACE_F
   return window.__ENV__?.[key] || import.meta.env[key]
 }
 
-const RAW_INTERVAL = readConfig('VITE_FACE_FRAME_INTERVAL') ?? '1'
+const RAW_INTERVAL = readConfig('VITE_FACE_FRAME_INTERVAL') ?? '0.5'
 
 function parseFrameInterval(raw: string): FrameInterval {
   if (raw === 'ALL_TIME') return 'ALL_TIME'

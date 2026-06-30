@@ -26,12 +26,10 @@ interface UseFaceVerificationSocketOptions {
   onTracking?: (message: WSMessage) => void
 }
 
-const SEND_INTERVAL_MS = 1000
-
 /**
  * Connects to ws://.../ws/verification/?token=... and streams JPEG frames
- * from the given video element at a fixed 1-second interval. Parses
- * incoming success/error messages and forwards them to the caller.
+ * from the given video element at a configurable interval. Parses incoming
+ * success/error messages and forwards them to the caller.
  */
 export function useFaceVerificationSocket(options: UseFaceVerificationSocketOptions) {
   const { token, videoRef, active, onSuccess, onError, onTracking } = options
@@ -76,14 +74,29 @@ export function useFaceVerificationSocket(options: UseFaceVerificationSocketOpti
 
   const stopStreaming = useCallback(() => {
     if (frameTimerRef.current !== null) {
-      window.clearInterval(frameTimerRef.current)
+      if (env.frameInterval === 'ALL_TIME') {
+        window.cancelAnimationFrame(frameTimerRef.current)
+      } else {
+        window.clearInterval(frameTimerRef.current)
+      }
       frameTimerRef.current = null
     }
   }, [])
 
   const startStreaming = useCallback(() => {
     stopStreaming()
-    frameTimerRef.current = window.setInterval(sendFrame, SEND_INTERVAL_MS)
+
+    if (env.frameInterval === 'ALL_TIME') {
+      const loop = () => {
+        sendFrame()
+        frameTimerRef.current = window.requestAnimationFrame(loop)
+      }
+      frameTimerRef.current = window.requestAnimationFrame(loop)
+      return
+    }
+
+    const intervalMs = Math.max(100, Math.round(env.frameInterval * 1000))
+    frameTimerRef.current = window.setInterval(sendFrame, intervalMs)
   }, [sendFrame, stopStreaming])
 
   useEffect(() => {
@@ -99,6 +112,7 @@ export function useFaceVerificationSocket(options: UseFaceVerificationSocketOpti
 
     socket.onopen = () => {
       setConnectionState('open')
+      sendFrame()
       startStreaming()
     }
 
