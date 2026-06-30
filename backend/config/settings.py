@@ -25,7 +25,12 @@ DEBUG = os.getenv('DEBUG', 'True').lower() in ('true', '1', 't')
 # ==========================================
 # Django serveringiz aynan qaysi domen nomidan kelayotgan so'rovlarni qabul qilishini belgilaydi.
 # HTTP Host header xurujlaridan himoya qilish uchun faqat backend domenini yozamiz.
-ALLOWED_HOSTS = ["api.my-face-info.uz"]
+ALLOWED_HOSTS = [
+                    "api.my-face-info.uz",
+                    "web_backend",
+                    "localhost",             # Docker ichki sog'liqni tekshirish (Healthcheck) skriptlari uchun
+                    "127.0.0.1",
+                ]
 
 
 # ==========================================
