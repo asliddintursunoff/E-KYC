@@ -73,17 +73,18 @@ services:
       
 
   nginx:
+    nginx:
     image: ${DOCKERHUB_USERNAME}/ekyc-nginx:${IMAGE_TAG}
     container_name: nginx
     restart: always
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - media_data:/app/media
       - static_data:/app/staticfiles
       - certbot_www:/var/www/certbot
       - certbot_certs:/etc/letsencrypt
-
     depends_on:
       web_backend:
         condition: service_healthy
