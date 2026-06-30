@@ -73,7 +73,6 @@ services:
       
 
   nginx:
-    nginx:
     image: ${DOCKERHUB_USERNAME}/ekyc-nginx:${IMAGE_TAG}
     container_name: nginx
     restart: always
