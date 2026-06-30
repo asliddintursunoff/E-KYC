@@ -20,6 +20,13 @@ CSRF_TRUSTED_ORIGINS = [
 ALLOWED_HOSTS = ["*"]
 
 CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+from corsheaders.defaults import default_headers
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    'content-type',
+    'authorization',
+    'x-csrftoken',
+]
 # Application definition
 
 INSTALLED_APPS = [

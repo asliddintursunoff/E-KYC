@@ -36,8 +36,8 @@ class FaceDetector:
 
     MASK_MODEL = ort.InferenceSession(settings.BASE_DIR / 'ml/weights/mask_detection.onnx',opts, providers=["CPUExecutionProvider"])
     GLASS_MODEL = ort.InferenceSession(settings.BASE_DIR / 'ml/weights/glass_detection.onnx',opts, providers=["CPUExecutionProvider"])
-    FACE_LOCATION_DETECTOR_MODEL = ort.InferenceSession(settings.BASE_DIR / 'ml/weights/ultra_light_320.onnx',opts, providers=["CPUExecutionProvider"])
-    EMBEDDING_MODEL = ort.InferenceSession(settings.BASE_DIR / 'ml/weights/mobilefacenet.onnx',opts, providers=["CPUExecutionProvider"])
+    FACE_LOCATION_DETECTOR_MODEL = ort.InferenceSession(settings.BASE_DIR / 'ml/weights/ultra_light_320.onnx', providers=["CPUExecutionProvider"])
+    EMBEDDING_MODEL = ort.InferenceSession(settings.BASE_DIR / 'ml/weights/mobilefacenet.onnx', providers=["CPUExecutionProvider"])
     
     # MAX_YAW_DEGREES = 25     # left/right turn
     # MAX_PITCH_DEGREES = 20   # up/down tilt
