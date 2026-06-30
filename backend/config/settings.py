@@ -27,6 +27,8 @@ DEBUG = os.getenv('DEBUG', 'True').lower() in ('true', '1', 't')
 # HTTP Host header xurujlaridan himoya qilish uchun faqat backend domenini yozamiz.
 ALLOWED_HOSTS = [
                     "api.my-face-info.uz",
+                    "my-face-info.com",      
+                    "www.my-face-info.com",
                     "web_backend",
                     "localhost",             # Docker ichki sog'liqni tekshirish (Healthcheck) skriptlari uchun
                     "127.0.0.1",
