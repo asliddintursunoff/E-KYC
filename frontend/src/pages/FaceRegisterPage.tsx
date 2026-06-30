@@ -8,16 +8,18 @@ import type { JobSuccessResponse } from '@/types/api'
 export function FaceRegisterPage() {
   const navigate = useNavigate()
   const selfieVerificationToken = useAuthStore((s) => s.selfieVerificationToken)
-  const setTokens = useAuthStore((s) => s.setTokens)
 
   // Guard: this page only makes sense right after step 1 of registration.
   if (!selfieVerificationToken) {
     return <Navigate to="/register" replace />
   }
 
-  const handleSuccess = (result: JobSuccessResponse) => {
-    setTokens(result.access_token, result.refresh_token)
-    navigate('/profile')
+  const handleSuccess = (_result: JobSuccessResponse) => {
+    navigate('/', {
+      state: {
+        successMessage: 'You successfully registered — you can now use our system.',
+      },
+    })
   }
 
   return (

@@ -1,12 +1,10 @@
-from rest_framework.exceptions import AuthenticationFailed,ValidationError
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.exceptions import ValidationError
 from rest_framework.generics import CreateAPIView,GenericAPIView,RetrieveAPIView
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser,FormParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view,authentication_classes,permission_classes,throttle_classes
-from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.throttling import AnonRateThrottle,UserRateThrottle
 
 from celery.result import AsyncResult
@@ -17,11 +15,9 @@ import base64
 from apps.users.tasks import face_register_task
 from apps.users.authentication import TemporaryTokenAuthentication
 from apps.users.models import User
-from apps.users.services.face_verification import FaceVerificationService
 from apps.users.tokens import TemporaryLoginToken
 from apps.users.api.serializers import (UserInformationSerializer, 
                                         UserRegsiterSerializer,
-                                        FaceVerificationSerializer,
                                         UserLoginSerializer, 
                                         UserSelfieUploadVerificationSerializer)
 
@@ -78,17 +74,10 @@ class SelfieUploadVerificationAPIView(GenericAPIView):
 @throttle_classes([UserRateThrottle])
 def get_job_info(request,job_id):
     result = AsyncResult(job_id)
-    access_token = None
-    refresh_token = None
     if result.status == 'SUCCESS':
-        refresh_token = RefreshToken().for_user(request.user)
-        access_token = str(refresh_token.access_token)
-        
         return Response({
             "job_id": job_id,
             "status": result.status,
-            "access_token":access_token,
-            "refresh_token":None if not refresh_token else str(refresh_token)
         })
     else:
         return Response({
@@ -108,39 +97,6 @@ class LoginAPIView(GenericAPIView):
         serializer = self.get_serializer(data = request.data)
         serializer.is_valid(raise_exception = True)
         return Response(serializer.validated_data,status=status.HTTP_200_OK)
-
-
-
-
-# class VerificationAPIView(GenericAPIView):
-#     serializer_class = FaceVerificationSerializer
-#     authentication_classes = [TemporaryTokenAuthentication]
-#     permission_classes = [IsAuthenticated]
-#     parser_classes = [MultiPartParser,FormParser]
-#     throttle_classes = [UserRateThrottle]
-#     def post(self,request,*args,**kwargs):
-#         serializer = self.get_serializer(data = request.data)
-#         serializer.is_valid(raise_exception = True)
-        
-#         try:
-#             FaceVerificationService.verify_user_selfie(serializer.validated_data['image'],request.user)
-        
-#         except AuthenticationFailed as e:
-#             return Response({"detail":str(e)},status=status.HTTP_403_FORBIDDEN)
-#         except Exception as e:
-#             return Response({"detail":str(e)},status=status.HTTP_422_UNPROCESSABLE_ENTITY)
-
-#         refresh_token = RefreshToken().for_user(request.user)
-#         access_token = refresh_token.access_token
-#         return Response({
-#             "access_token":str(access_token),
-#             "refresh_token":str(refresh_token),
-#         })
-
-
-
-
-
 
 
 

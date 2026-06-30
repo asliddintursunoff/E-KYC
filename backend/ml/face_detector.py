@@ -86,10 +86,10 @@ class FaceDetector:
         # Slice image using clean pixel parameters
         face_crop = img[y1:y2, x1:x2]
         if self.__class__.is_too_dark(face_crop):
-            raise DarkImageFound(message='Image is too dark, Please stand in brighter place')
+            raise DarkImageFound(message='Image is too dark, Please stand in brighter place',data={'face_location': face_location})
         
-        if self.__class__.is_too_blurry(face_crop, threshold=70.0):
-            raise BlurryImageFound(message='Image is too blurry. Please clean your camera.')
+        if self.__class__.is_too_blurry(face_crop):
+            raise BlurryImageFound(message='Image is too blurry. Please clean your camera.',data={'face_location': face_location})
         
         # Class compliance validation checkpoints
         has_glass = self.__class__._has_glasses(face_crop)
@@ -113,35 +113,6 @@ class FaceDetector:
         }
         
         
-
-        
-
-
-    @classmethod
-    def _face_info(cls,img_np_array)->dict:
-        faces = cls.FACE_MODEL.get(img_np_array)
-
-        if len(faces) >1:
-            raise MultipleFacesFound("More than one face found",data={
-                "face_location": [
-                    face["bbox"].tolist()
-                    for face in faces
-                ]
-            })
-        
-        elif len(faces) == 0:
-            raise NoFaceFound("No face found")
-        
-        face = faces[0]
-        cls._check_frontal(face)
-
-        data = {
-            "face_location":face["bbox"],
-            "confidence":face["det_score"],
-            "embedding":face["embedding"]
-        }
-        return data
-    
     @classmethod
     def _has_mask(cls,face_crop_np_arr)->bool:
         img = cv2.resize(face_crop_np_arr,(224,224))
@@ -270,19 +241,19 @@ class FaceDetector:
     
     
     @classmethod
-    def is_too_dark(cls,image,threeshold =50):
+    def is_too_dark(cls,image,threshold =50):
         gray = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
         
         avg_brightness = np.mean(gray)
         
-        return avg_brightness<threeshold
+        return avg_brightness<threshold
     
     
     @classmethod
-    def is_too_blury(cls,image,threeshold =0.80):
+    def is_too_blurry(cls,image,threshold =0.80):
         gray = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
         
         variance = cv2.Laplacian(gray,cv2.CV_64F).var()
         
         
-        return variance<threeshold
+        return variance<threshold

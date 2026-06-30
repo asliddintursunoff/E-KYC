@@ -6,6 +6,8 @@ export type WSErrorCode =
   | 'multiple_face'
   | 'different_person'
   | 'not_looking_front'
+  | 'blur_image'
+  | 'dark_image'
   | string
 
 /**

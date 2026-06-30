@@ -1,13 +1,20 @@
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { PageShell } from '@/components/layout/PageShell'
 import { Button } from '@/components/ui/Button'
 import { FaceMark } from '@/components/ui/FaceMark'
 
 export function LandingPage() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const successMessage = (location.state as { successMessage?: string } | null)?.successMessage
 
   return (
     <PageShell>
+      {successMessage ? (
+        <div className="mb-4 rounded-3xl border border-success/20 bg-success/10 px-4 py-3 text-center text-sm text-success">
+          {successMessage}
+        </div>
+      ) : null}
       <div className="flex flex-1 flex-col items-center justify-center text-center">
         <div className="mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-white/5 text-ink">
           <FaceMark size={48} />

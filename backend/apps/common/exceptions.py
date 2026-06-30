@@ -43,3 +43,12 @@ class DifferentPersonException(AppException):
 class NotFrontLookingException(AppException):
     code = "not_looking_front"
     message = "Look to the camera"
+    
+
+class BlurImageException(AppException):
+    code = "blur_image"
+    message = "Image is too blurry. Please clean your camera."
+    
+class DarkImageException(AppException):
+    code = "dark_image"
+    message = "Image is too dark, Please stand in brighter place"

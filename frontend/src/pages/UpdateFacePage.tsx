@@ -2,13 +2,11 @@ import { useNavigate } from 'react-router-dom'
 import { PageShell } from '@/components/layout/PageShell'
 import { TopBar } from '@/components/layout/TopBar'
 import { FaceEnrollmentFlow } from '@/components/camera/FaceEnrollmentFlow'
-import { useAuthStore } from '@/store/authStore'
 import { tokenStorage } from '@/utils/tokenStorage'
 import type { JobSuccessResponse } from '@/types/api'
 
 export function UpdateFacePage() {
   const navigate = useNavigate()
-  const setTokens = useAuthStore((s) => s.setTokens)
 
   // Re-enrollment runs through the same capture → upload → poll pipeline as
   // initial registration. The spec does not define a separate token-issuing
@@ -21,8 +19,7 @@ export function UpdateFacePage() {
     return null
   }
 
-  const handleSuccess = (result: JobSuccessResponse) => {
-    setTokens(result.access_token, result.refresh_token)
+  const handleSuccess = (_result: JobSuccessResponse) => {
     navigate('/profile')
   }
 

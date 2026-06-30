@@ -41,5 +41,5 @@ export const faceService = {
 }
 
 export function isJobSuccess(response: JobPollResponse): response is JobSuccessResponse {
-  return response.status === 'SUCCESS' && 'access_token' in response
+  return response.status === 'SUCCESS'
 }

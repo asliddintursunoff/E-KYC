@@ -21,7 +21,7 @@ export function CameraView({
   showScanFrame = true,
 }: CameraViewProps) {
   return (
-    <div className="relative w-full mx-auto overflow-hidden rounded-4xl bg-base-surface h-[420px] sm:h-[480px] lg:h-[520px] max-w-[640px] sm:max-w-[760px] lg:max-w-[1000px]">
+    <div className="relative w-full mx-auto overflow-hidden rounded-4xl bg-base-surface h-[340px] sm:h-[420px] lg:h-[520px] max-w-[640px] sm:max-w-[760px] lg:max-w-[1000px]">
       <video
         ref={videoRef}
         autoPlay

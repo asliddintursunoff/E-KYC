@@ -3,16 +3,18 @@ from pgvector.django import CosineDistance
 
 
 from django.apps import apps
-from rest_framework.exceptions import AuthenticationFailed
 
 from ml.face_detector import ( FaceDetector,
                                 MultipleFacesFound,
                                 NoFaceFound,
                                 GlassesFound,
                                 CoveredFace,
-                                NotFrontLooking
+                                NotFrontLooking,
+                                DarkImageFound,
+                                BlurryImageFound
                                 )
-from apps.common.exceptions import (FaceVerificationException,
+from apps.common.exceptions import (DarkImageException,
+                                    BlurImageException,
                                     GlassFoundException,
                                     MaskFoundException,
                                     NoFaceFoundException,
@@ -63,6 +65,12 @@ class FaceVerificationService:
             raise GlassFoundException(data=e.data)
         except CoveredFace as e:
             raise MaskFoundException(data=e.data)
+        
+        except DarkImageFound as e:
+            raise DarkImageException(data = e.data)
+        except BlurryImageFound as e:
+            raise BlurImageException(data=e.data)
+        
         
         
 

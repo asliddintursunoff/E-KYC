@@ -19,14 +19,12 @@ export type JobStatus = 'PENDING' | 'STARTED' | 'SUCCESS' | 'FAILURE' | string
 
 export interface JobSuccessResponse {
   job_id: string
-  status: JobStatus
-  access_token: string
-  refresh_token: string
+  status: 'SUCCESS'
 }
 
 export interface JobFailureResponse {
   job_id: string
-  status: JobStatus
+  status: 'FAILURE'
   error: string
 }
 
