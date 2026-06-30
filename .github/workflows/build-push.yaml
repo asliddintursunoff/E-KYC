@@ -5,8 +5,8 @@ on:
     branches:
       - main
     paths:
-      - "backend/"
-      - "frontend/"
+      - "backend/**"
+      - "frontend/**"
       - "docker-compose.yaml"
       - ".github/workflows/build-push.yaml"
 
@@ -111,5 +111,4 @@ jobs:
               echo "✅ DEPLOYMENT SUCCESSFUL: All containers running smoothly."
             fi
 
-          
           
