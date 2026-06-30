@@ -22,7 +22,7 @@ class HealthCheckAPIView(APIView):
         
         try:
             with connection.cursor() as cursor:
-                cursor.query("SELECT 1;")
+                cursor.execute("SELECT 1;")
         except Exception as e:
             health_summary['status'] = 'unhealthy'
             health_summary["services"]["database"] = f"unhealthy: {str(e)}"
