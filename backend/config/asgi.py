@@ -23,7 +23,7 @@ from apps.websocket.middleware import UserAuthenticateMiddleware
 
 application = ProtocolTypeRouter({
     'http':asgi_app,
-    'websocket':AllowedHostsOriginValidator(
+    'websocket':(
         UserAuthenticateMiddleware(
             URLRouter(websocket_urlpatterns)
         )
