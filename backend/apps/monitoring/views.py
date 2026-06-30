@@ -41,3 +41,4 @@ class HealthCheckAPIView(APIView):
             
         return Response(health_summary,status=status_code)
             
+            
