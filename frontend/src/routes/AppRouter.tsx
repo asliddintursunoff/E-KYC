@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import { createHashRouter, RouterProvider } from 'react-router-dom'
 import { ProtectedRoute } from '@/routes/ProtectedRoute'
 import {
   LandingPage,
@@ -11,7 +11,7 @@ import {
   NotFoundPage,
 } from '@/pages'
 
-const router = createBrowserRouter([
+const router = createHashRouter([
   { path: '/', element: <LandingPage /> },
   { path: '/register', element: <RegisterPage /> },
   { path: '/register/face', element: <FaceRegisterPage /> },

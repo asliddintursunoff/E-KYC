@@ -17,6 +17,7 @@ export function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [imageVersion, setImageVersion] = useState<string>('0')
 
   const loadProfile = async () => {
     setLoading(true)
@@ -24,6 +25,7 @@ export function ProfilePage() {
     try {
       const data = await userService.getMe()
       setProfile(data)
+      setImageVersion(Date.now().toString())
     } catch (err) {
       setError(extractErrorMessage(err, 'Could not load your profile.'))
     } finally {
@@ -68,7 +70,11 @@ export function ProfilePage() {
           <div className="mb-6 flex flex-col items-center">
             <div className="mb-4 h-28 w-28 overflow-hidden rounded-full border-2 border-white/10 bg-base-surface">
               {profile.image ? (
-                <img src={profile.image} alt={fullName} className="h-full w-full object-cover" />
+                <img
+                  src={`${profile.image}${profile.image.includes('?') ? '&' : '?'}t=${imageVersion}`}
+                  alt={fullName}
+                  className="h-full w-full object-cover"
+                />
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-[28px] font-semibold text-ink-muted">
                   {profile.first_name?.[0]?.toUpperCase() ?? '?'}
