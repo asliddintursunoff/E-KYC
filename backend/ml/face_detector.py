@@ -31,6 +31,12 @@ class CoveredFace(MLBaseException):
 class GlassesFound(MLBaseException):
     pass
 
+class DarkImageFound(MLBaseException):
+    pass
+
+class BlurryImageFound(MLBaseException):
+    pass
+
 
 class FaceDetector:
 
@@ -55,6 +61,8 @@ class FaceDetector:
         )
         
         img = cv2.imdecode(image_bytes, cv2.IMREAD_COLOR)
+        
+        
         faces = self.__class__._predict_all_faces(img)
         print(faces)
         num_faces = len(faces)
@@ -77,7 +85,12 @@ class FaceDetector:
         
         # Slice image using clean pixel parameters
         face_crop = img[y1:y2, x1:x2]
-
+        if self.__class__.is_too_dark(face_crop):
+            raise DarkImageFound(message='Image is too dark, Please stand in brighter place')
+        
+        if self.__class__.is_too_blurry(face_crop, threshold=70.0):
+            raise BlurryImageFound(message='Image is too blurry. Please clean your camera.')
+        
         # Class compliance validation checkpoints
         has_glass = self.__class__._has_glasses(face_crop)
         if has_glass:
@@ -254,3 +267,22 @@ class FaceDetector:
             order = order[inds + 1]
             
         return keep
+    
+    
+    @classmethod
+    def is_too_dark(cls,image,threeshold =50):
+        gray = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
+        
+        avg_brightness = np.mean(gray)
+        
+        return avg_brightness<threeshold
+    
+    
+    @classmethod
+    def is_too_blury(cls,image,threeshold =0.80):
+        gray = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
+        
+        variance = cv2.Laplacian(gray,cv2.CV_64F).var()
+        
+        
+        return variance<threeshold

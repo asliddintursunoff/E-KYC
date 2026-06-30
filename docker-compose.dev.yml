@@ -50,16 +50,16 @@ services:
     ports:
       - "8000:8000"
 
-  nginx:
-    image: nginx:latest
-    restart: always
-    ports:
-      - "80:80"
-    volumes:
-      - media_data:/app/media
-      - ./backend/nginx/conf.d:/etc/nginx/conf.d
-    depends_on:
-      - web_backend
+  # nginx:
+  #   image: nginx:latest
+  #   restart: always
+  #   ports:
+  #     - "80:80"
+  #   volumes:
+  #     - media_data:/app/media
+  #     - ./backend/nginx/conf.d:/etc/nginx/conf.d
+  #   depends_on:
+  #     - web_backend
   celery_worker:
     # image: ${DOCKERHUB_USERNAME}/ekyc-web-backend:${IMAGE_TAG}
     build: ./backend
