@@ -1,4 +1,7 @@
 import json
+from PIL import Image
+import io
+
 from asgiref.sync import sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 
@@ -30,6 +33,15 @@ class FaceIdConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data = None, bytes_data = None):
         
         try:
+            if text_data is not None:
+                raise Exception("Invalid data type, only binary is allowed")
+            
+            if bytes_data is None:
+                raise Exception("No binary data found")
+            
+            if not self.is_valid_image(bytes_data):
+                raise Exception("Invalid file type. Only JPEG, PNG, and WebP images are allowed.")
+            
             await sync_to_async(FaceVerificationService().verify_user_selfie)(bytes_data,self.scope['user'])
             refresh_token = RefreshToken().for_user(self.scope["user"])
             access_token = refresh_token.access_token
@@ -76,3 +88,11 @@ class FaceIdConsumer(AsyncWebsocketConsumer):
             "code":code,
             "data": data
         }))
+        
+    def is_valid_image(self, bytes_data: bytes) -> bool:
+        ALLOWED_FORMATS = ['JPEG', 'PNG', 'WEBP']
+        try:
+            with Image.open(io.BytesIO(bytes_data)) as img:
+                return img.format in ALLOWED_FORMATS
+        except Exception:
+            return False

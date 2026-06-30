@@ -60,7 +60,23 @@ class FaceVerificationSerializer(serializers.Serializer):
     access_token = serializers.CharField(read_only = True)
     refresh_token = serializers.CharField(read_only = True)
 
+    def validate_image(self,value):
+        max_size = 1024*1024*5
+        ALLOWED_FORMATS = ['png','jpeg','jpg','webp']
+        
+        if value.size > max_size:
+            raise serializers.ValidationError('Image file size cannot be more than 2 MB')
+        
+        # image = value.image
+        # width, height = image.size
+        # if width < 200 or height < 200:
+        #     raise serializers.ValidationError("Image dimensions must be at least 200x200 pixels.")
+        
+        if value.content_type not in ALLOWED_FORMATS:
+            raise serializers.ValidationError('Only PNG, JPEG, JPG, WEBP is allowed')
 
+        return value
+    
 class UserSelfieUploadVerificationSerializer(serializers.Serializer):
     image = serializers.ImageField(write_only = True)
     job_id = serializers.UUIDField(read_only = True)
@@ -74,18 +90,18 @@ class UserLoginSerializer(serializers.Serializer):
     passport_id = serializers.CharField(write_only = True)
     password = serializers.CharField(write_only = True)
     temporary_login_token = serializers.CharField(read_only = True)
-    # def validate_passport_id(self,value):
-    #     pattern_exact = r"^[A-Z]{2}\d{7}$"
-    #     if len(value)!=9 or not re.match(pattern_exact, value.upper()):
-    #         raise serializers.ValidationError('Passport Id should be exactly 2 chars and 7 digits')
-    #     return value
+    def validate_passport_id(self,value):
+        pattern_exact = r"^[A-Z]{2}\d{7}$"
+        if len(value)!=9 or not re.match(pattern_exact, value.upper()):
+            raise serializers.ValidationError('Passport Id should be exactly 2 chars and 7 digits')
+        return value
     
-    # def validate_password(self,value):
-    #     try:
-    #         validate_password(value)
-    #     except ValidationError as e:
-    #         raise serializers.ValidationError(str(e))
-    #     return value
+    def validate_password(self,value):
+        try:
+            validate_password(value)
+        except ValidationError as e:
+            raise serializers.ValidationError(str(e))
+        return value
         
     
     def validate(self, attrs):
