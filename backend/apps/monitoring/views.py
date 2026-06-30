@@ -20,6 +20,7 @@ class HealthCheckAPIView(APIView):
             }
         }
         
+        
         try:
             with connection.cursor() as cursor:
                 cursor.execute("SELECT 1;")
