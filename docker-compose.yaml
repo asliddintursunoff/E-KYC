@@ -102,7 +102,7 @@ services:
     volumes:
       - certbot_www:/var/www/certbot
       - certbot_certs:/etc/letsencrypt
-    entrypoint: "true" 
+  
 
 
 volumes:
