@@ -22,8 +22,8 @@ export type FaceBox = [number, number, number, number]
 export interface WSSuccessMessage {
   type: 'success'
   message: string
-  code: 'verified' | string
-  data: {
+  code: 'verified' | 'before_verified' | string
+  data?: {
     access_token: string
     refresh_token: string
   }

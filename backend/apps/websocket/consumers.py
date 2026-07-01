@@ -66,6 +66,7 @@ class FaceIdConsumer(AsyncWebsocketConsumer):
                 await self.send_success("verified",data,message=message)
                 await self.close(4000,reason=message)
                 return
+            self.send_success("before_verified",data=None,message = "")
             self.verified_count +=1
         
         except AppException as exc:

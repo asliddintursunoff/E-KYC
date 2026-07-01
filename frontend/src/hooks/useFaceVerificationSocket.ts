@@ -24,6 +24,11 @@ interface UseFaceVerificationSocketOptions {
    * that still carry live face_location data for box tracking.
    */
   onTracking?: (message: WSMessage) => void
+  /**
+   * Called when the backend has checked the frame but has not yet issued
+   * the final token-bearing verification result.
+   */
+  onPreverify?: (message: WSSuccessMessage) => void
 }
 
 /**
@@ -32,7 +37,7 @@ interface UseFaceVerificationSocketOptions {
  * success/error messages and forwards them to the caller.
  */
 export function useFaceVerificationSocket(options: UseFaceVerificationSocketOptions) {
-  const { token, videoRef, active, onSuccess, onError, onTracking } = options
+  const { token, videoRef, active, onSuccess, onError, onTracking, onPreverify } = options
 
   const [connectionState, setConnectionState] = useState<WSConnectionState>('idle')
   const socketRef = useRef<WebSocket | null>(null)
@@ -122,6 +127,10 @@ export function useFaceVerificationSocket(options: UseFaceVerificationSocketOpti
       try {
         const parsed: WSMessage = JSON.parse(event.data)
         if (parsed.type === 'success') {
+          if ((parsed as WSSuccessMessage).code === 'before_verified') {
+            onPreverify?.(parsed)
+            return
+          }
           successReceived = true
           stopStreaming()
           onSuccess(parsed)
@@ -132,7 +141,14 @@ export function useFaceVerificationSocket(options: UseFaceVerificationSocketOpti
           onTracking?.(parsed)
         }
       } catch {
-        // Non-JSON message received; ignore silently to keep stream resilient.
+        if (event.data === 'before_verified') {
+          onPreverify?.({
+            type: 'success',
+            code: 'before_verified',
+            message: '',
+            data: undefined,
+          })
+        }
       }
     }
 

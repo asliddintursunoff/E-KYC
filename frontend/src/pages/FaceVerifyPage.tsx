@@ -23,20 +23,36 @@ export function FaceVerifyPage() {
     useFaceFlowStore()
 
   const [socketActive, setSocketActive] = useState(true)
+  const [preVerified, setPreVerified] = useState(false)
 
   const handleSuccess = useCallback(
     (message: WSSuccessMessage) => {
+      if (message.code === 'before_verified') {
+        setStage('capturing')
+        setPreVerified(true)
+        setGuidance(null, message.message || 'Face checked, continuing verification')
+        setFaceBoxes(parseFaceBoxes((message as { data?: unknown }).data))
+        return
+      }
+
+      setPreVerified(false)
+      if (!message.data) {
+        setStage('error')
+        setGuidance(null, 'Verification succeeded but no session token was returned')
+        return
+      }
       setStage('success')
       setGuidance(null, message.message)
       setTokens(message.data.access_token, message.data.refresh_token)
       setSocketActive(false)
       navigate('/profile')
     },
-    [navigate, setGuidance, setStage, setTokens]
+    [navigate, setGuidance, setStage, setFaceBoxes, setTokens]
   )
 
   const handleError = useCallback(
     (message: WSErrorMessage) => {
+      setPreVerified(false)
       setStage('error')
       setGuidance(message.code, getGuidanceMessage(message.code, message.message))
       setFaceBoxes(parseFaceBoxes(message.data))
@@ -67,9 +83,17 @@ export function FaceVerifyPage() {
     onSuccess: handleSuccess,
     onError: handleError,
     onTracking: handleTracking,
+    onPreverify: handleSuccess,
   })
 
-  const scanState = stage === 'success' ? 'success' : stage === 'error' ? 'error' : 'scanning'
+  const scanState =
+    stage === 'success'
+      ? 'success'
+      : stage === 'error'
+      ? 'error'
+      : preVerified
+      ? 'preverified'
+      : 'scanning'
 
   useEffect(() => {
     setStage('ready')
@@ -94,6 +118,7 @@ export function FaceVerifyPage() {
   const handleRetry = () => {
     closeSocket()
     reset()
+    setPreVerified(false)
     setStage('ready')
     setSocketActive(true)
   }

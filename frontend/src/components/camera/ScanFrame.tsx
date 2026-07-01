@@ -1,4 +1,4 @@
-type ScanState = 'idle' | 'scanning' | 'success' | 'error'
+type ScanState = 'idle' | 'scanning' | 'success' | 'error' | 'preverified'
 
 interface ScanFrameProps {
   state: ScanState
@@ -9,6 +9,7 @@ const ringColor: Record<ScanState, string> = {
   scanning: 'border-accent',
   success: 'border-success',
   error: 'border-danger',
+  preverified: 'border-yellow-300',
 }
 
 const glowColor: Record<ScanState, string> = {
@@ -16,6 +17,7 @@ const glowColor: Record<ScanState, string> = {
   scanning: 'shadow-[0_0_40px_8px_rgba(10,132,255,0.25)]',
   success: 'shadow-[0_0_40px_8px_rgba(48,209,88,0.3)]',
   error: 'shadow-[0_0_40px_8px_rgba(255,69,58,0.3)]',
+  preverified: 'shadow-[0_0_40px_8px_rgba(245,158,11,0.25)]',
 }
 
 /**
