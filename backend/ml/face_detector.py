@@ -88,14 +88,14 @@ class FaceDetector:
         if self.__class__.is_too_blurry(face_crop):
             raise BlurryImageFound(message='Image is too blurry. Please clean your camera.',data={'face_location': face_location})
         
-        if self.__class__.is_backlight_detected(img,face_location):
+        # if self.__class__.is_backlight_detected(img,face_location):
             
-            raise BacklightImageFound(
-                message="Strong light detected behind your head. Please change your position.",
-                data={'face_location': face_location}
-            )
-        if self.__class__.is_spoof_laplacian_depth(face_crop):
-            raise NotRealPerson(message='Person in the photo is not real',data={'face_location': face_location})
+        #     raise BacklightImageFound(
+        #         message="Strong light detected behind your head. Please change your position.",
+        #         data={'face_location': face_location}
+        #     )
+        # if self.__class__.is_spoof_laplacian_depth(face_crop):
+        #     raise NotRealPerson(message='Person in the photo is not real',data={'face_location': face_location})
         # Class compliance validation checkpoints
         has_glass = self.__class__._has_glasses(face_crop)
         if has_glass:
@@ -111,7 +111,7 @@ class FaceDetector:
         
         # L2 Vector normalization matching standard database cosine metric comparisons
         embedding = embedding / np.linalg.norm(embedding)
-       
+
         
         return {
             "embedding": embedding,
