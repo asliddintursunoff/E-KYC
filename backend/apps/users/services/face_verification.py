@@ -11,7 +11,9 @@ from ml.face_detector import ( FaceDetector,
                                 CoveredFace,
                                 NotFrontLooking,
                                 DarkImageFound,
-                                BlurryImageFound
+                                BlurryImageFound,
+                                NotRealPerson,
+                                BacklightImageFound
                                 )
 from apps.common.exceptions import (DarkImageException,
                                     BlurImageException,
@@ -20,7 +22,9 @@ from apps.common.exceptions import (DarkImageException,
                                     NoFaceFoundException,
                                     MultipleFaceFoundException,
                                     DifferentPersonException,
-                                    NotFrontLookingException
+                                    NotFrontLookingException,
+                                    NotRealPersonException,
+                                    BacklightImageFoundException
                                     )
 
 
@@ -70,7 +74,11 @@ class FaceVerificationService:
             raise DarkImageException(data = e.data)
         except BlurryImageFound as e:
             raise BlurImageException(data=e.data)
+        except NotRealPerson as e:
+            raise NotRealPersonException(data=e.data)
         
+        except BacklightImageFound as e:
+            raise BacklightImageFoundException(data=e.data)
         
         
 
@@ -85,7 +93,7 @@ class FaceVerificationService:
             user.verified = True
             user.save()
             return user
-         
+        
         except NotFrontLooking as e:
             raise NotFrontLookingException()
         except MultipleFacesFound as e:

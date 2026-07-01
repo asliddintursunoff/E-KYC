@@ -15,10 +15,10 @@ from apps.users.tokens import TemporaryLoginToken
 
 class UserRegsiterSerializer(serializers.Serializer):
     id = serializers.UUIDField(read_only = True)
-    first_name = serializers.CharField()
-    last_name = serializers.CharField()
-    middle_name = serializers.CharField()
-    passport_id = serializers.CharField()
+    first_name = serializers.CharField(write_only=True)
+    last_name = serializers.CharField(write_only=True)
+    middle_name = serializers.CharField(write_only=True)
+    passport_id = serializers.CharField(write_only=True)
     password = serializers.CharField(write_only = True)
     date_of_birth = serializers.DateField(format="%d-%m-%Y")
     selfie_verification_token = serializers.CharField(read_only = True)
@@ -46,7 +46,12 @@ class UserRegsiterSerializer(serializers.Serializer):
         return user
     
 
-class UserInformationSerializer(UserRegsiterSerializer):
+class UserInformationSerializer(serializers.Serializer):
+    first_name = serializers.CharField()
+    last_name = serializers.CharField()
+    middle_name = serializers.CharField()
+    passport_id = serializers.CharField()
+    date_of_birth = serializers.DateField(format="%d-%m-%Y")
     image = serializers.ImageField(read_only = True)
     verified = serializers.BooleanField(read_only = True)
     selfie_verification_token = None

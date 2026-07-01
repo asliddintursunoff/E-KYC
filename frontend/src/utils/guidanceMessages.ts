@@ -6,6 +6,8 @@ export const GUIDANCE_MESSAGES: Record<string, string> = {
   no_face: 'Face not detected',
   multiple_face: 'Only one person should be visible',
   different_person: 'Face does not match registered identity',
+  not_real_person: 'Fake photo detected, please use a live camera image',
+  blacklight_image: 'Strong backlight detected. Please move so the light is behind you.',
   not_looking_front: 'Please look directly at the camera',
   blur_image: 'Image is too blurry. Please clean your camera and hold steady',
   dark_image: 'Image is too dark. Please move to a brighter place',

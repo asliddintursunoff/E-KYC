@@ -24,11 +24,29 @@ export function RegisterPage() {
   const setSelfieVerificationToken = useAuthStore((s) => s.setSelfieVerificationToken)
 
   const [form, setForm] = useState<RegisterPayload>(initialForm)
+  const [dobDisplay, setDobDisplay] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const update = (field: keyof RegisterPayload) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm((prev) => ({ ...prev, [field]: e.target.value }))
+    const val = e.target.value
+    if (field === 'date_of_birth') {
+      // Expect user to enter DD-MM-YYYY. Keep a display value and convert
+      // to ISO (YYYY-MM-DD) for the backend when valid.
+      setDobDisplay(val)
+      const m = val.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/)
+      if (m) {
+        const day = m[1].padStart(2, '0')
+        const month = m[2].padStart(2, '0')
+        const year = m[3]
+        setForm((prev) => ({ ...prev, date_of_birth: `${year}-${month}-${day}` }))
+      } else {
+        setForm((prev) => ({ ...prev, date_of_birth: '' }))
+      }
+      return
+    }
+
+    setForm((prev) => ({ ...prev, [field]: val }))
   }
 
   const handleSubmit = async (e: FormEvent) => {
@@ -86,8 +104,9 @@ export function RegisterPage() {
         <Input
           label="Date of birth"
           name="date_of_birth"
-          type="date"
-          value={form.date_of_birth}
+          type="text"
+          placeholder="DD-MM-YYYY"
+          value={dobDisplay}
           onChange={update('date_of_birth')}
           required
         />

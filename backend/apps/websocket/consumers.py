@@ -25,7 +25,18 @@ class FaceIdConsumer(AsyncWebsocketConsumer):
             }))
             await self.close(code=4003,reason="Invalid Token")
             return
+        
+        if not user.verified or user.embedding is None:
+            await self.accept()
+            await self.send(json.dumps({
+                "type":"error",
+                "code":"authentication_failed",
+                "message": "User did not register selfie before, Please register it first"
+            }))
+            await self.close(code=4003,reason="Not registered selfie")
+            return
         await self.accept()
+        self.verified_count = 0
         
     async def disconnect(self, code):
         pass
@@ -43,21 +54,26 @@ class FaceIdConsumer(AsyncWebsocketConsumer):
                 raise Exception("Invalid file type. Only JPEG, PNG, and WebP images are allowed.")
             
             await sync_to_async(FaceVerificationService().verify_user_selfie)(bytes_data,self.scope['user'])
-            refresh_token = RefreshToken().for_user(self.scope["user"])
-            access_token = refresh_token.access_token
-            data={
-                    "access_token": str(access_token),
-                    "refresh_token": str(refresh_token),
-                }
-            message = "User identified successfully"
-            await self.send_success("verified",data,message=message)
-            await self.close(4000,reason=message)
-            return
+            
+            if self.verified_count == 2:
+                refresh_token = RefreshToken().for_user(self.scope["user"])
+                access_token = refresh_token.access_token
+                data={
+                        "access_token": str(access_token),
+                        "refresh_token": str(refresh_token),
+                    }
+                message = "User identified successfully"
+                await self.send_success("verified",data,message=message)
+                await self.close(4000,reason=message)
+                return
+            self.verified_count +=1
         
         except AppException as exc:
+            self.verified_count = 0
             await  self.send_error(exc)
             
         except Exception as e:
+            self.verified_count = 0
             error_message = str(e)
             
             await self.send(text_data=json.dumps({
@@ -71,7 +87,6 @@ class FaceIdConsumer(AsyncWebsocketConsumer):
         
         
     async def send_error(self,exc:AppException):
-        print(exc.data)
         await self.send(json.dumps({
             "type":"error",
             "code":exc.code,

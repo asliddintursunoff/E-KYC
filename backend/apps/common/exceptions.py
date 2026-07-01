@@ -52,3 +52,11 @@ class BlurImageException(AppException):
 class DarkImageException(AppException):
     code = "dark_image"
     message = "Image is too dark, Please stand in brighter place"
+    
+class NotRealPersonException(AppException):
+    code = "not_real_person"
+    message = "Fake photo detected"
+    
+class BacklightImageFoundException(AppException):
+    code = "blacklight_image"
+    message = "Strong light detected behind your head. Please change your position."
